@@ -1,0 +1,30 @@
+# Databricks SDK and utilities
+databricks-sdk>=0.20.0
+databricks-cli>=0.18.0
+
+# PySpark (provided by Databricks runtime, but needed for local testing)
+pyspark>=3.5.0
+
+# Data processing
+pandas>=2.0.0
+delta-spark>=3.0.0
+
+# API requests
+requests>=2.31.0
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.0
+
+# Code quality
+flake8>=6.0.0
+black>=23.0.0
+pylint>=2.17.0
+autopep8>=2.0.0
+
+# Logging
+structlog>=23.1.0
+
+# Geographic mapping
+geopandas

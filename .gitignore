@@ -1,0 +1,84 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# Testing
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+*.ipynb
+
+# Databricks
+.databrickscfg
+*.dbfs
+
+# Logs
+*.log
+logs/
+/tmp/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Data files (don't commit large datasets)
+*.csv
+*.parquet
+*.json
+data/
+*.db
+*.sqlite
+
+# Compiled files
+*.class
+*.jar
+
+# Package files
+*.tar.gz
+*.zip
+
+# Secrets (never commit credentials)
+secrets/
+credentials.json
+service-account.json
