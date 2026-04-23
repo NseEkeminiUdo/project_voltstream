@@ -80,7 +80,7 @@ The solution is implemented using a **medallion architecture on Databricks**.
 * KPIs on station availability, downtime, and cost impact  
 * Business-ready views for analyzing reliability trends across time and regions  
 
-![Image](Images/project_voltstream.png)
+![Image](Images/project_voltstream_final.png)
 
 ---
 
