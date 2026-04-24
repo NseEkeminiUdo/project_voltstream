@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 import numpy as np
-from pyspark.dbutils import DBUtils
 from pyspark.sql.functions import col, lit, get_json_object
 from pyspark.sql.types import StructType, StructField, StringType, TimestampType
 import json

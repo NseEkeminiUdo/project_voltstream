@@ -13,7 +13,6 @@ import os
 
 from utils.shared import (
     fetch_data,
-    load_checkpoint,
     load_table,
     add_timestamp,
     filter_uningested_data,
@@ -86,47 +85,6 @@ def test_fetch_data_retry_on_failure(mock_sleep, mock_get):
 
     # Should retry 5 times
     assert mock_get.call_count == 5
-
-
-# Tests for load_checkpoint
-@pytest.mark.spark
-def test_load_checkpoint_existing_data(spark):
-    """Test loading checkpoint from existing dataframe"""
-    schema = StructType(
-        [
-            StructField("id", IntegerType(), True),
-            StructField("ingest_timestamp", TimestampType(), True),
-        ]
-    )
-    test_data = [
-        (1, datetime(2025, 1, 1, 10, 0, 0)),
-        (2, datetime(2025, 1, 2, 11, 0, 0)),
-        (3, datetime(2025, 1, 3, 12, 0, 0)),
-    ]
-    df = spark.createDataFrame(test_data, schema)
-
-    log_info = {"layer": "bronze", "job": "test", "dataset": "test_dataset"}
-    result = load_checkpoint(df, **log_info)
-
-    assert result == datetime(2025, 1, 3, 12, 0, 0)
-
-
-@pytest.mark.spark
-def test_load_checkpoint_empty_dataframe(spark):
-    """Test loading checkpoint when dataframe is empty"""
-    schema = StructType(
-        [
-            StructField("id", IntegerType(), True),
-            StructField("ingest_timestamp", TimestampType(), True),
-        ]
-    )
-    df = spark.createDataFrame([], schema)
-
-    log_info = {"layer": "bronze", "job": "test", "dataset": "test_dataset"}
-    result = load_checkpoint(df, **log_info)
-
-    # Should return default timestamp
-    assert result == datetime.fromisoformat("2011-01-01T00:00:00Z")
 
 
 # Tests for load_table
