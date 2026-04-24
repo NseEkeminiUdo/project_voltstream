@@ -2,7 +2,13 @@ import pytest
 from unittest.mock import Mock, patch
 from datetime import datetime
 from pyspark.sql import SparkSession
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType, TimestampType
+from pyspark.sql.types import (
+    StructType,
+    StructField,
+    StringType,
+    IntegerType,
+    TimestampType,
+)
 import os
 
 from utils.shared import (
@@ -13,7 +19,7 @@ from utils.shared import (
     filter_uningested_data,
     deduplicate,
     write_to_table,
-    update_table
+    update_table,
 )
 
 
@@ -49,7 +55,7 @@ def spark():
 
 
 # Tests for fetch_data
-@patch('utils.shared.requests.get')
+@patch("utils.shared.requests.get")
 def test_fetch_data_success(mock_get):
     """Test successful API data fetch"""
     mock_response = Mock()
@@ -64,8 +70,8 @@ def test_fetch_data_success(mock_get):
     mock_get.assert_called_once()
 
 
-@patch('utils.shared.requests.get')
-@patch('utils.shared.time.sleep')
+@patch("utils.shared.requests.get")
+@patch("utils.shared.time.sleep")
 def test_fetch_data_retry_on_failure(mock_sleep, mock_get):
     """Test retry mechanism on API failure"""
     mock_response = Mock()
@@ -86,14 +92,16 @@ def test_fetch_data_retry_on_failure(mock_sleep, mock_get):
 @pytest.mark.spark
 def test_load_checkpoint_existing_data(spark):
     """Test loading checkpoint from existing dataframe"""
-    schema = StructType([
-        StructField("id", IntegerType(), True),
-        StructField("ingest_timestamp", TimestampType(), True)
-    ])
+    schema = StructType(
+        [
+            StructField("id", IntegerType(), True),
+            StructField("ingest_timestamp", TimestampType(), True),
+        ]
+    )
     test_data = [
         (1, datetime(2025, 1, 1, 10, 0, 0)),
         (2, datetime(2025, 1, 2, 11, 0, 0)),
-        (3, datetime(2025, 1, 3, 12, 0, 0))
+        (3, datetime(2025, 1, 3, 12, 0, 0)),
     ]
     df = spark.createDataFrame(test_data, schema)
 
@@ -106,10 +114,12 @@ def test_load_checkpoint_existing_data(spark):
 @pytest.mark.spark
 def test_load_checkpoint_empty_dataframe(spark):
     """Test loading checkpoint when dataframe is empty"""
-    schema = StructType([
-        StructField("id", IntegerType(), True),
-        StructField("ingest_timestamp", TimestampType(), True)
-    ])
+    schema = StructType(
+        [
+            StructField("id", IntegerType(), True),
+            StructField("ingest_timestamp", TimestampType(), True),
+        ]
+    )
     df = spark.createDataFrame([], schema)
 
     log_info = {"layer": "bronze", "job": "test", "dataset": "test_dataset"}
@@ -123,10 +133,12 @@ def test_load_checkpoint_empty_dataframe(spark):
 @pytest.mark.spark
 def test_load_table_create_new(spark):
     """Test creating a new table if it doesn't exist"""
-    schema = StructType([
-        StructField("id", IntegerType(), True),
-        StructField("name", StringType(), True)
-    ])
+    schema = StructType(
+        [
+            StructField("id", IntegerType(), True),
+            StructField("name", StringType(), True),
+        ]
+    )
     df = spark.createDataFrame([], schema)
     table_name = "test_new_table"
 
@@ -157,14 +169,16 @@ def test_add_timestamp(spark):
 @pytest.mark.spark
 def test_filter_uningested_data(spark):
     """Test filtering out already ingested data"""
-    schema = StructType([
-        StructField("id", IntegerType(), True),
-        StructField("ingest_timestamp", TimestampType(), True)
-    ])
+    schema = StructType(
+        [
+            StructField("id", IntegerType(), True),
+            StructField("ingest_timestamp", TimestampType(), True),
+        ]
+    )
     test_data = [
         (1, datetime(2025, 1, 1, 10, 0, 0)),
         (2, datetime(2025, 1, 2, 11, 0, 0)),
-        (3, datetime(2025, 1, 3, 12, 0, 0))
+        (3, datetime(2025, 1, 3, 12, 0, 0)),
     ]
     df = spark.createDataFrame(test_data, schema)
 
@@ -180,10 +194,7 @@ def test_filter_uningested_data(spark):
 @pytest.mark.spark
 def test_deduplicate_all_columns(spark):
     """Test deduplication on all columns"""
-    df = spark.createDataFrame(
-        [(1, "a"), (1, "a"), (2, "b")],
-        ["id", "value"]
-    )
+    df = spark.createDataFrame([(1, "a"), (1, "a"), (2, "b")], ["id", "value"])
     result_df = deduplicate(df)
 
     assert result_df.count() == 2
@@ -193,8 +204,7 @@ def test_deduplicate_all_columns(spark):
 def test_deduplicate_specific_columns(spark):
     """Test deduplication on specific columns"""
     df = spark.createDataFrame(
-        [(1, "a", "x"), (1, "a", "y"), (2, "b", "z")],
-        ["id", "value", "extra"]
+        [(1, "a", "x"), (1, "a", "y"), (2, "b", "z")], ["id", "value", "extra"]
     )
     result_df = deduplicate(df, ["id", "value"])
 
@@ -230,10 +240,12 @@ def test_update_table_merge_operations(spark):
     from delta.tables import DeltaTable
 
     # Create initial table
-    schema = StructType([
-        StructField("id", IntegerType(), True),
-        StructField("value", StringType(), True)
-    ])
+    schema = StructType(
+        [
+            StructField("id", IntegerType(), True),
+            StructField("value", StringType(), True),
+        ]
+    )
     initial_data = [(1, "a"), (2, "b")]
     df_initial = spark.createDataFrame(initial_data, schema)
     table_name = "test_update_table"

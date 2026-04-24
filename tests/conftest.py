@@ -26,4 +26,5 @@ def spark():
 @pytest.fixture(scope="session")
 def ensure_geopandas():
     import geopandas as gpd
+
     return gpd

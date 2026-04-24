@@ -4,7 +4,7 @@ from pyspark.sql.functions import col, cast
 from utils.observability import (
     create_control_table,
     get_last_processed_timestamp,
-    insert_control_record
+    insert_control_record,
 )
 
 
@@ -32,8 +32,7 @@ def test_create_control_table_success(spark, test_table_name):
     result = create_control_table(spark, test_table_name)
 
     # Verify table exists
-    tables = spark.sql("SHOW TABLES").filter(
-        col("tableName") == test_table_name)
+    tables = spark.sql("SHOW TABLES").filter(col("tableName") == test_table_name)
     assert tables.count() == 1, f"Table {test_table_name} should exist"
     assert result == test_table_name
 
@@ -48,9 +47,16 @@ def test_create_control_table_schema(spark, test_table_name):
     # Check schema
     df = spark.table(test_table_name)
     expected_columns = [
-        "pipeline_name", "layer", "last_processed_timestamp", "batch_id",
-        "status", "records_processed", "records_failed", "start_time",
-        "end_time", "error_message"
+        "pipeline_name",
+        "layer",
+        "last_processed_timestamp",
+        "batch_id",
+        "status",
+        "records_processed",
+        "records_failed",
+        "start_time",
+        "end_time",
+        "error_message",
     ]
 
     assert df.columns == expected_columns, "Schema columns should match expected"
@@ -65,8 +71,7 @@ def test_create_control_table_idempotent(spark, test_table_name):
     create_control_table(spark, test_table_name)  # Should not fail
 
     # Verify only one table exists
-    tables = spark.sql("SHOW TABLES").filter(
-        col("tableName") == test_table_name)
+    tables = spark.sql("SHOW TABLES").filter(col("tableName") == test_table_name)
     assert tables.count() == 1
 
     # Cleanup
@@ -104,23 +109,14 @@ def test_get_last_timestamp_multiple_records(spark, setup_control_table):
     timestamp3 = datetime(2024, 1, 15, 12, 0, 0)
 
     insert_control_record(
-        spark,
-        setup_control_table,
-        "voltstream",
-        "bronze",
-        timestamp1)
+        spark, setup_control_table, "voltstream", "bronze", timestamp1
+    )
     insert_control_record(
-        spark,
-        setup_control_table,
-        "voltstream",
-        "bronze",
-        timestamp2)
+        spark, setup_control_table, "voltstream", "bronze", timestamp2
+    )
     insert_control_record(
-        spark,
-        setup_control_table,
-        "voltstream",
-        "bronze",
-        timestamp3)
+        spark, setup_control_table, "voltstream", "bronze", timestamp3
+    )
 
     result = get_last_processed_timestamp(
         spark, setup_control_table, "voltstream", "bronze"
@@ -151,7 +147,8 @@ def test_insert_record_fields(spark, setup_control_table):
         "voltstream",
         "silver",
         test_timestamp,
-        status="success")
+        status="success",
+    )
 
     # Query the record
     df = spark.table(setup_control_table)

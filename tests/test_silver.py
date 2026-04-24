@@ -2,7 +2,17 @@ import pytest
 from unittest.mock import patch, MagicMock
 from datetime import datetime, date
 from pyspark.sql import SparkSession
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType, DateType, BooleanType, LongType, TimestampType
+from pyspark.sql.types import (
+    StructType,
+    StructField,
+    StringType,
+    IntegerType,
+    DoubleType,
+    DateType,
+    BooleanType,
+    LongType,
+    TimestampType,
+)
 from pyspark.sql.functions import col, lit
 import json
 import os
@@ -26,7 +36,7 @@ from utils.silver import (
     explode_connections,
     select_conn_columns,
     transform_weather,
-    standardize_towns
+    standardize_towns,
 )
 
 
@@ -34,30 +44,42 @@ from utils.silver import (
 @pytest.mark.spark
 def test_extract_col_from_json_string(spark):
     """Test extracting columns from JSON string"""
-    json_data = json.dumps({
-        "ID": 1,
-        "AddressInfo": {
-            "Title": "Test Station",
-            "AddressLine1": "123 Main St",
-            "Town": "New York",
-            "StateOrProvince": "NY",
-            "Latitude": 40.7128,
-            "Longitude": -74.0060
-        },
-        "Connections": [{"type": "CHAdeMO"}],
-        "StatusType": {"Title": "Operational", "ID": 50},
-        "DateLastStatusUpdate": "2025-01-01",
-        "DateCreated": "2024-01-01"
-    })
+    json_data = json.dumps(
+        {
+            "ID": 1,
+            "AddressInfo": {
+                "Title": "Test Station",
+                "AddressLine1": "123 Main St",
+                "Town": "New York",
+                "StateOrProvince": "NY",
+                "Latitude": 40.7128,
+                "Longitude": -74.0060,
+            },
+            "Connections": [{"type": "CHAdeMO"}],
+            "StatusType": {"Title": "Operational", "ID": 50},
+            "DateLastStatusUpdate": "2025-01-01",
+            "DateCreated": "2024-01-01",
+        }
+    )
 
     df = spark.createDataFrame([(json_data,)], ["raw_text"])
     result_df = extract_col_from_json_string(df, "raw_text")
 
     # Verify all expected columns are present
-    expected_columns = ["station_id", "title", "address", "town",
-                        "state_or_province", "latitude", "longitude",
-                        "connections", "status", "status_id",
-                        "date_last_status_update", "date_created"]
+    expected_columns = [
+        "station_id",
+        "title",
+        "address",
+        "town",
+        "state_or_province",
+        "latitude",
+        "longitude",
+        "connections",
+        "status",
+        "status_id",
+        "date_last_status_update",
+        "date_created",
+    ]
     for col_name in expected_columns:
         assert col_name in result_df.columns
 
@@ -66,10 +88,7 @@ def test_extract_col_from_json_string(spark):
 @pytest.mark.spark
 def test_validate_columns_all_valid(spark):
     """Test column validation with all valid data"""
-    df = spark.createDataFrame(
-        [(1, "a"), (2, "b"), (3, "c")],
-        ["id", "value"]
-    )
+    df = spark.createDataFrame([(1, "a"), (2, "b"), (3, "c")], ["id", "value"])
     log_info = {"layer": "silver", "job": "test", "dataset": "test_dataset"}
 
     # Should not raise exception
@@ -81,14 +100,13 @@ def test_validate_columns_all_valid(spark):
 def test_validate_columns_all_null(spark):
     """Test column validation with all NULL values"""
     # Use explicit schema to avoid type inference issues with NULL values
-    schema = StructType([
-        StructField("id", IntegerType(), True),
-        StructField("value", StringType(), True)
-    ])
-    df = spark.createDataFrame(
-        [(1, None), (2, None), (3, None)],
-        schema
+    schema = StructType(
+        [
+            StructField("id", IntegerType(), True),
+            StructField("value", StringType(), True),
+        ]
     )
+    df = spark.createDataFrame([(1, None), (2, None), (3, None)], schema)
     log_info = {"layer": "silver", "job": "test", "dataset": "test_dataset"}
 
     # Should raise RuntimeError for all-NULL column
@@ -98,48 +116,44 @@ def test_validate_columns_all_null(spark):
 
 # Tests for validate_and_quarantine_rows
 @pytest.mark.spark
-@patch('utils.silver.write_to_table')
+@patch("utils.silver.write_to_table")
 def test_validate_and_quarantine_rows_all_valid(mock_write, spark):
     """Test row validation with all valid records"""
-    schema = StructType([
-        StructField("station_id", IntegerType(), True),
-        StructField("latitude", DoubleType(), True),
-        StructField("longitude", DoubleType(), True)
-    ])
-    df = spark.createDataFrame(
-        [(1, 40.7, -74.0), (2, 40.8, -73.9)],
-        schema
+    schema = StructType(
+        [
+            StructField("station_id", IntegerType(), True),
+            StructField("latitude", DoubleType(), True),
+            StructField("longitude", DoubleType(), True),
+        ]
     )
+    df = spark.createDataFrame([(1, 40.7, -74.0), (2, 40.8, -73.9)], schema)
 
     log_info = {"layer": "silver", "job": "test", "dataset": "test_dataset"}
     result_df = validate_and_quarantine_rows(
-        df,
-        ["station_id", "latitude", "longitude"],
-        **log_info
+        df, ["station_id", "latitude", "longitude"], **log_info
     )
 
     assert result_df.count() == 2
 
 
 @pytest.mark.spark
-@patch('utils.silver.write_to_table')
+@patch("utils.silver.write_to_table")
 def test_validate_and_quarantine_rows_with_nulls(mock_write, spark):
     """Test row validation with NULL values"""
-    schema = StructType([
-        StructField("station_id", IntegerType(), True),
-        StructField("latitude", DoubleType(), True),
-        StructField("longitude", DoubleType(), True)
-    ])
+    schema = StructType(
+        [
+            StructField("station_id", IntegerType(), True),
+            StructField("latitude", DoubleType(), True),
+            StructField("longitude", DoubleType(), True),
+        ]
+    )
     df = spark.createDataFrame(
-        [(1, 40.7, -74.0), (2, None, -73.9), (3, 40.9, None)],
-        schema
+        [(1, 40.7, -74.0), (2, None, -73.9), (3, 40.9, None)], schema
     )
 
     log_info = {"layer": "silver", "job": "test", "dataset": "test_dataset"}
     result_df = validate_and_quarantine_rows(
-        df,
-        ["station_id", "latitude", "longitude"],
-        **log_info
+        df, ["station_id", "latitude", "longitude"], **log_info
     )
 
     # Only 1 valid record (id=1)
@@ -152,16 +166,14 @@ def test_validate_and_quarantine_rows_with_nulls(mock_write, spark):
 @pytest.mark.spark
 def test_load_current_data(spark):
     """Test loading current records from silver table"""
-    schema = StructType([
-        StructField("station_id", IntegerType(), True),
-        StructField("Is_Current", BooleanType(), True),
-        StructField("value", StringType(), True)
-    ])
-    data = [
-        (1, True, "current1"),
-        (2, False, "expired"),
-        (3, True, "current2")
-    ]
+    schema = StructType(
+        [
+            StructField("station_id", IntegerType(), True),
+            StructField("Is_Current", BooleanType(), True),
+            StructField("value", StringType(), True),
+        ]
+    )
+    data = [(1, True, "current1"), (2, False, "expired"), (3, True, "current2")]
     df = spark.createDataFrame(data, schema)
     df.write.mode("overwrite").saveAsTable("test_current_table")
 
@@ -183,13 +195,9 @@ def test_load_current_data(spark):
 def test_join_current_and_incoming_data_single_key(spark):
     """Test joining current and incoming data with single key"""
     incoming = spark.createDataFrame(
-        [(1, "new_value"), (2, "another_value")],
-        ["id", "value"]
+        [(1, "new_value"), (2, "another_value")], ["id", "value"]
     )
-    current = spark.createDataFrame(
-        [(1, "old_value")],
-        ["id", "value"]
-    )
+    current = spark.createDataFrame([(1, "old_value")], ["id", "value"])
 
     result_df = join_current_and_incoming_data(incoming, current, "id")
 
@@ -199,25 +207,21 @@ def test_join_current_and_incoming_data_single_key(spark):
     # columns)
     columns = result_df.columns
     # After join with aliases, non-key duplicate columns should have prefixes
-    assert any("stg" in col.lower() or "current" in col.lower()
-               for col in columns) or len([c for c in columns
-                                           if "value" in c.lower()]) >= 1
+    assert (
+        any("stg" in col.lower() or "current" in col.lower() for col in columns)
+        or len([c for c in columns if "value" in c.lower()]) >= 1
+    )
 
 
 @pytest.mark.spark
 def test_join_current_and_incoming_data_multiple_keys(spark):
     """Test joining current and incoming data with multiple keys"""
     incoming = spark.createDataFrame(
-        [(1, "A", "value1"), (2, "B", "value2")],
-        ["id", "type", "value"]
+        [(1, "A", "value1"), (2, "B", "value2")], ["id", "type", "value"]
     )
-    current = spark.createDataFrame(
-        [(1, "A", "old_value")],
-        ["id", "type", "value"]
-    )
+    current = spark.createDataFrame([(1, "A", "old_value")], ["id", "type", "value"])
 
-    result_df = join_current_and_incoming_data(
-        incoming, current, ["id", "type"])
+    result_df = join_current_and_incoming_data(incoming, current, ["id", "type"])
 
     assert result_df.count() == 2
 
@@ -227,25 +231,22 @@ def test_join_current_and_incoming_data_multiple_keys(spark):
 def test_add_scd_logic_insert(spark):
     """Test SCD logic for new records (INSERT)"""
     # Create staging dataframe (new record)
-    stg_df = spark.createDataFrame(
-        [(1, "new_status")],
-        ["station_id", "status"]
-    )
+    stg_df = spark.createDataFrame([(1, "new_status")], ["station_id", "status"])
 
     # Create empty current dataframe (no existing records)
     current_df = spark.createDataFrame(
         [],
-        StructType([
-            StructField("station_id", IntegerType(), True),
-            StructField("status", StringType(), True)
-        ])
+        StructType(
+            [
+                StructField("station_id", IntegerType(), True),
+                StructField("status", StringType(), True),
+            ]
+        ),
     )
 
     # Join them with aliases (stg left join current)
     joined_df = stg_df.alias("stg").join(
-        current_df.alias("current"),
-        on=["station_id"],
-        how="left"
+        current_df.alias("current"), on=["station_id"], how="left"
     )
 
     # Apply SCD logic
@@ -261,22 +262,14 @@ def test_add_scd_logic_insert(spark):
 def test_add_scd_logic_update(spark):
     """Test SCD logic for changed records (UPDATE)"""
     # Create staging dataframe (updated record)
-    stg_df = spark.createDataFrame(
-        [(1, "new_status")],
-        ["station_id", "status"]
-    )
+    stg_df = spark.createDataFrame([(1, "new_status")], ["station_id", "status"])
 
     # Create current dataframe (existing record with old status)
-    current_df = spark.createDataFrame(
-        [(1, "old_status")],
-        ["station_id", "status"]
-    )
+    current_df = spark.createDataFrame([(1, "old_status")], ["station_id", "status"])
 
     # Join them with aliases (stg left join current)
     joined_df = stg_df.alias("stg").join(
-        current_df.alias("current"),
-        on=["station_id"],
-        how="left"
+        current_df.alias("current"), on=["station_id"], how="left"
     )
 
     # Apply SCD logic
@@ -294,18 +287,17 @@ def test_add_columns_for_idempotency(spark):
     # Create staging dataframe (new/updated records)
     stg_df = spark.createDataFrame(
         [(1, "Station 1", "Operational", date(2025, 1, 1))],
-        ["station_id", "title", "status", "date_last_status_update"]
+        ["station_id", "title", "status", "date_last_status_update"],
     )
 
     # Create current dataframe (existing records with old data)
     current_df = spark.createDataFrame(
         [(1, "Station 1", "Offline", date(2024, 12, 31))],
-        ["station_id", "title", "status", "date_last_status_update"]
+        ["station_id", "title", "status", "date_last_status_update"],
     )
 
     # Join them with aliases
-    joined_df = join_current_and_incoming_data(
-        stg_df, current_df, "station_id")
+    joined_df = join_current_and_incoming_data(stg_df, current_df, "station_id")
 
     # Apply SCD logic
     joined_df = add_scd_logic(joined_df, "station_id", "status")
@@ -315,7 +307,7 @@ def test_add_columns_for_idempotency(spark):
         joined_df,
         ["station_id"],
         "station_sk",
-        ["station_id", "title", "status", "date_last_status_update"]
+        ["station_id", "title", "status", "date_last_status_update"],
     )
 
     # Should have idempotency columns
@@ -334,16 +326,15 @@ def test_add_columns_for_idempotency(spark):
 @pytest.mark.spark
 def test_identify_rows_to_expire(spark):
     """Test identifying rows that need to be expired"""
-    schema = StructType([
-        StructField("scd_action", StringType(), True),
-        StructField("station_id", IntegerType(), True),
-        StructField("station_sk", LongType(), True),
-        StructField("valid_from", DateType(), True)
-    ])
-    df = spark.createDataFrame(
-        [("UPDATE", 1, 12345, date(2025, 1, 2))],
-        schema
+    schema = StructType(
+        [
+            StructField("scd_action", StringType(), True),
+            StructField("station_id", IntegerType(), True),
+            StructField("station_sk", LongType(), True),
+            StructField("valid_from", DateType(), True),
+        ]
     )
+    df = spark.createDataFrame([("UPDATE", 1, 12345, date(2025, 1, 2))], schema)
 
     result_df = identify_rows_to_expire(df, "station_sk")
 
@@ -357,12 +348,35 @@ def test_identify_rows_to_expire(spark):
 def test_select_station_columns(spark):
     """Test selecting and renaming station columns"""
     df = spark.createDataFrame(
-        [(1, "Station A", "123 Main", "NYC", "NY", 40.7, -74.0, "Operational",
-          50, date(2025, 1, 1),
-          date(2024, 1, 1))],
-        ["station_id", "title", "address", "town", "state_or_province",
-         "latitude", "longitude", "status", "status_id",
-         "date_last_status_update", "date_created"])
+        [
+            (
+                1,
+                "Station A",
+                "123 Main",
+                "NYC",
+                "NY",
+                40.7,
+                -74.0,
+                "Operational",
+                50,
+                date(2025, 1, 1),
+                date(2024, 1, 1),
+            )
+        ],
+        [
+            "station_id",
+            "title",
+            "address",
+            "town",
+            "state_or_province",
+            "latitude",
+            "longitude",
+            "status",
+            "status_id",
+            "date_last_status_update",
+            "date_created",
+        ],
+    )
 
     result_df = select_station_columns(df)
 
@@ -378,7 +392,8 @@ def test_select_station_columns(spark):
         "status",
         "status_id",
         "date_last_status_update",
-        "date_created"]
+        "date_created",
+    ]
     for col_name in expected_cols:
         assert col_name in result_df.columns
 
@@ -387,18 +402,13 @@ def test_select_station_columns(spark):
 @pytest.mark.spark
 def test_convert_lat_lon_type(spark):
     """Test converting latitude and longitude to double type"""
-    df = spark.createDataFrame(
-        [(1, "40.7", "-74.0")],
-        ["id", "latitude", "longitude"]
-    )
+    df = spark.createDataFrame([(1, "40.7", "-74.0")], ["id", "latitude", "longitude"])
 
     result_df = convert_lat_lon_type(df)
 
     # Should have double type for lat/lon
-    lat_type = [f.dataType for f in result_df.schema.fields
-                if f.name == "latitude"][0]
-    lon_type = [f.dataType for f in result_df.schema.fields
-                if f.name == "longitude"][0]
+    lat_type = [f.dataType for f in result_df.schema.fields if f.name == "latitude"][0]
+    lon_type = [f.dataType for f in result_df.schema.fields if f.name == "longitude"][0]
     assert isinstance(lat_type, DoubleType)
     assert isinstance(lon_type, DoubleType)
 
@@ -408,8 +418,7 @@ def test_convert_lat_lon_type(spark):
 def test_add_weather_zone_coordinates(spark):
     """Test adding weather zone coordinates"""
     df = spark.createDataFrame(
-        [(1, 40.7128, -74.0060)],
-        ["station_id", "latitude", "longitude"]
+        [(1, 40.7128, -74.0060)], ["station_id", "latitude", "longitude"]
     )
 
     result_df = add_weather_zone_coordinates(df)
@@ -424,19 +433,19 @@ def test_add_weather_zone_coordinates(spark):
 def test_standardize_towns(spark, ensure_geopandas):
     """Test standardizing town names using geospatial join"""
     # Create test input dataframe with station data
-    schema = StructType([
-        StructField("station_id", IntegerType(), True),
-        StructField("latitude", DoubleType(), True),
-        StructField("longitude", DoubleType(), True),
-        StructField("town", StringType(), True)
-    ])
-    df = spark.createDataFrame(
-        [(1, 40.7128, -74.0060, "Old Town Name")],
-        schema
+    schema = StructType(
+        [
+            StructField("station_id", IntegerType(), True),
+            StructField("latitude", DoubleType(), True),
+            StructField("longitude", DoubleType(), True),
+            StructField("town", StringType(), True),
+        ]
     )
+    df = spark.createDataFrame([(1, 40.7128, -74.0060, "Old Town Name")], schema)
 
-    with patch('geopandas.read_parquet') as mock_read_parquet, \
-            patch('geopandas.sjoin_nearest') as mock_sjoin_nearest:
+    with patch("geopandas.read_parquet") as mock_read_parquet, patch(
+        "geopandas.sjoin_nearest"
+    ) as mock_sjoin_nearest:
 
         # Mock the clipped parquet file (geographic boundary data)
         mock_clipped = MagicMock()
@@ -445,16 +454,19 @@ def test_standardize_towns(spark, ensure_geopandas):
         # Mock the result of spatial join
         # The join should add a "name" column and other fields
         import pandas as pd
-        mock_joined_data = pd.DataFrame({
-            "station_id": [1],
-            "latitude": [40.7128],
-            "longitude": [-74.0060],
-            "name": ["Standardized Town"],  # This will be renamed to "town"
-            "geometry": [None],  # Will be dropped
-            "distance": [0.1],  # Will be dropped
-            "town": ["Old Town Name"],  # Will be dropped (original town)
-            "index_right": [0]  # Will be dropped
-        })
+
+        mock_joined_data = pd.DataFrame(
+            {
+                "station_id": [1],
+                "latitude": [40.7128],
+                "longitude": [-74.0060],
+                "name": ["Standardized Town"],  # This will be renamed to "town"
+                "geometry": [None],  # Will be dropped
+                "distance": [0.1],  # Will be dropped
+                "town": ["Old Town Name"],  # Will be dropped (original town)
+                "index_right": [0],  # Will be dropped
+            }
+        )
         mock_sjoin_nearest.return_value = mock_joined_data
 
         # Call the function
@@ -462,7 +474,8 @@ def test_standardize_towns(spark, ensure_geopandas):
 
         # Verify the function was called with correct arguments
         mock_read_parquet.assert_called_once_with(
-            "/Volumes/bronze_dev/superstor_schema/raw_superstore/clipped.parquet")
+            "/Volumes/bronze_dev/superstor_schema/raw_superstore/clipped.parquet"
+        )
         mock_sjoin_nearest.assert_called_once()
 
         # Verify output dataframe structure
@@ -486,22 +499,22 @@ def test_standardize_towns(spark, ensure_geopandas):
 def test_standardize_towns_multiple_stations(spark, ensure_geopandas):
     """Test standardizing town names for multiple stations"""
     # Create test input dataframe with multiple stations
-    schema = StructType([
-        StructField("station_id", IntegerType(), True),
-        StructField("latitude", DoubleType(), True),
-        StructField("longitude", DoubleType(), True),
-        StructField("town", StringType(), True)
-    ])
-    df = spark.createDataFrame(
+    schema = StructType(
         [
-            (1, 40.7128, -74.0060, "Old Town 1"),
-            (2, 40.7580, -73.9855, "Old Town 2")
-        ],
-        schema
+            StructField("station_id", IntegerType(), True),
+            StructField("latitude", DoubleType(), True),
+            StructField("longitude", DoubleType(), True),
+            StructField("town", StringType(), True),
+        ]
+    )
+    df = spark.createDataFrame(
+        [(1, 40.7128, -74.0060, "Old Town 1"), (2, 40.7580, -73.9855, "Old Town 2")],
+        schema,
     )
 
-    with patch('geopandas.read_parquet') as mock_read_parquet, \
-            patch('geopandas.sjoin_nearest') as mock_sjoin_nearest:
+    with patch("geopandas.read_parquet") as mock_read_parquet, patch(
+        "geopandas.sjoin_nearest"
+    ) as mock_sjoin_nearest:
 
         # Mock the clipped parquet file
         mock_clipped = MagicMock()
@@ -509,16 +522,19 @@ def test_standardize_towns_multiple_stations(spark, ensure_geopandas):
 
         # Mock the result of spatial join with multiple stations
         import pandas as pd
-        mock_joined_data = pd.DataFrame({
-            "station_id": [1, 2],
-            "latitude": [40.7128, 40.7580],
-            "longitude": [-74.0060, -73.9855],
-            "name": ["New York City", "Manhattan"],
-            "geometry": [None, None],
-            "distance": [0.1, 0.2],
-            "town": ["Old Town 1", "Old Town 2"],
-            "index_right": [0, 1]
-        })
+
+        mock_joined_data = pd.DataFrame(
+            {
+                "station_id": [1, 2],
+                "latitude": [40.7128, 40.7580],
+                "longitude": [-74.0060, -73.9855],
+                "name": ["New York City", "Manhattan"],
+                "geometry": [None, None],
+                "distance": [0.1, 0.2],
+                "town": ["Old Town 1", "Old Town 2"],
+                "index_right": [0, 1],
+            }
+        )
         mock_sjoin_nearest.return_value = mock_joined_data
 
         # Call the function
@@ -540,7 +556,7 @@ def test_explode_connections(spark):
 
     df = spark.createDataFrame(
         [(1, date(2025, 1, 1), '[{"PowerKW": 50, "Quantity": 2, "Level": {"ID": 2}]')],
-        ["station_id", "date_last_status_update", "Connections"]
+        ["station_id", "date_last_status_update", "Connections"],
     )
 
     log_info = {"layer": "silver", "job": "test", "dataset": "test_dataset"}
@@ -557,40 +573,61 @@ def test_select_conn_columns(spark):
     """Test selecting connection columns after explode_connections"""
     # Match the exact schema from schema.silver.explode_conn_schema (after
     # explode)
-    conn_schema = StructType([
-        StructField("ID", IntegerType(), True),
-        StructField("ConnectionTypeID", IntegerType(), True),
-        StructField("LevelID", IntegerType(), True),
-        StructField("Amps", IntegerType(), True),
-        StructField("Voltage", DoubleType(), True),
-        StructField("PowerKW", DoubleType(), True),
-        StructField("CurrentType", StructType([
+    conn_schema = StructType(
+        [
             StructField("ID", IntegerType(), True),
-            StructField("Title", StringType(), True)
-        ]), True),
-        StructField("Quantity", IntegerType(), True),
-        StructField("ConnectionType", StructType([
-            StructField("ID", IntegerType(), True),
-            StructField("Title", StringType(), True)
-        ]), True)
-    ])
+            StructField("ConnectionTypeID", IntegerType(), True),
+            StructField("LevelID", IntegerType(), True),
+            StructField("Amps", IntegerType(), True),
+            StructField("Voltage", DoubleType(), True),
+            StructField("PowerKW", DoubleType(), True),
+            StructField(
+                "CurrentType",
+                StructType(
+                    [
+                        StructField("ID", IntegerType(), True),
+                        StructField("Title", StringType(), True),
+                    ]
+                ),
+                True,
+            ),
+            StructField("Quantity", IntegerType(), True),
+            StructField(
+                "ConnectionType",
+                StructType(
+                    [
+                        StructField("ID", IntegerType(), True),
+                        StructField("Title", StringType(), True),
+                    ]
+                ),
+                True,
+            ),
+        ]
+    )
 
-    schema = StructType([
-        StructField("conn", conn_schema, True),
-        StructField("station_id", IntegerType(), True),
-        StructField("date_last_status_update", DateType(), True),
-        StructField("ingest_timestamp", TimestampType(), True)
-    ])
+    schema = StructType(
+        [
+            StructField("conn", conn_schema, True),
+            StructField("station_id", IntegerType(), True),
+            StructField("date_last_status_update", DateType(), True),
+            StructField("ingest_timestamp", TimestampType(), True),
+        ]
+    )
 
     # Create dataframe with proper struct for conn column
     # Tuple structure: (ID, ConnectionTypeID, LevelID, Amps, Voltage, PowerKW,
     # CurrentType, Quantity, ConnectionType)
     df = spark.createDataFrame(
-        [((1, 2, 2, 100, 240.0, 50.0, (1, "AC"),
-           2, (2, "Type 2")),
-          123, date(2025, 1, 1),
-          datetime.now())],
-        schema)
+        [
+            (
+                (1, 2, 2, 100, 240.0, 50.0, (1, "AC"), 2, (2, "Type 2")),
+                123,
+                date(2025, 1, 1),
+                datetime.now(),
+            )
+        ],
+        schema,
+    )
 
     result_df = select_conn_columns(df)
 
@@ -606,7 +643,8 @@ def test_select_conn_columns(spark):
         "current_type",
         "station_id",
         "date_last_status_update",
-        "ingest_timestamp"]
+        "ingest_timestamp",
+    ]
     for col_name in expected_cols:
         assert col_name in result_df.columns
 
@@ -615,31 +653,48 @@ def test_select_conn_columns(spark):
 @pytest.mark.spark
 def test_transform_weather(spark):
     """Test transforming weather data"""
-    schema = StructType([
-        StructField("lat", DoubleType(), True),
-        StructField("lon", DoubleType(), True),
-        StructField("weather", StringType(), True),
-        StructField("description", StringType(), True),
-        StructField("temp", DoubleType(), True),
-        StructField("pressure", IntegerType(), True),
-        StructField("humidity", IntegerType(), True),
-        StructField("visibility", IntegerType(), True),
-        StructField("rain", DoubleType(), True),
-        StructField("snow", DoubleType(), True),
-        StructField("wind_speed", DoubleType(), True),
-        StructField("clouds", IntegerType(), True),
-        StructField("dt", IntegerType(), True)
-    ])
+    schema = StructType(
+        [
+            StructField("lat", DoubleType(), True),
+            StructField("lon", DoubleType(), True),
+            StructField("weather", StringType(), True),
+            StructField("description", StringType(), True),
+            StructField("temp", DoubleType(), True),
+            StructField("pressure", IntegerType(), True),
+            StructField("humidity", IntegerType(), True),
+            StructField("visibility", IntegerType(), True),
+            StructField("rain", DoubleType(), True),
+            StructField("snow", DoubleType(), True),
+            StructField("wind_speed", DoubleType(), True),
+            StructField("clouds", IntegerType(), True),
+            StructField("dt", IntegerType(), True),
+        ]
+    )
     df = spark.createDataFrame(
-        [(40.7, -74.0, "Clear", "clear sky", 72.0, 1013, 65, 10000, 0.0, 0.0,
-          5.5, 20, 1704067200)],
-        schema)
+        [
+            (
+                40.7,
+                -74.0,
+                "Clear",
+                "clear sky",
+                72.0,
+                1013,
+                65,
+                10000,
+                0.0,
+                0.0,
+                5.5,
+                20,
+                1704067200,
+            )
+        ],
+        schema,
+    )
 
     result_df = transform_weather(df)
 
     # Should have transformed weather data with timestamp
     assert "dt_utc" in result_df.columns
     # Verify dt_utc is converted to timestamp type
-    dt_type = [f.dataType for f in result_df.schema.fields
-               if f.name == "dt_utc"][0]
+    dt_type = [f.dataType for f in result_df.schema.fields if f.name == "dt_utc"][0]
     assert isinstance(dt_type, TimestampType)

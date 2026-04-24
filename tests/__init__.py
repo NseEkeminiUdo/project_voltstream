@@ -9,10 +9,4 @@ __version__ = "1.0.0"
 __author__ = "Data Engineering Team"
 
 # Test modules
-__all__ = [
-    'test_shared',
-    'test_bronze',
-    'test_silver',
-    'test_gold',
-    'test_integration'
-]
+__all__ = ["test_shared", "test_bronze", "test_silver", "test_gold", "test_integration"]

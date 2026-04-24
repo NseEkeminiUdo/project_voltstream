@@ -21,12 +21,18 @@ import sys
 import os
 from datetime import datetime, timedelta
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, max as spark_max, min as spark_min, count, countDistinct, sum as spark_sum
+from pyspark.sql.functions import (
+    col,
+    max as spark_max,
+    min as spark_min,
+    count,
+    countDistinct,
+    sum as spark_sum,
+)
 import logging
 
 # Add project root to path
-sys.path.insert(
-    0, '/Workspace/Users/nseekeminiudo@gmail.com/project_voltstream')
+sys.path.insert(0, "/Workspace/Users/nseekeminiudo@gmail.com/project_voltstream")
 
 
 class HealthCheckStatus:
@@ -54,7 +60,7 @@ class HealthCheckStatus:
             "passed": len(self.passed),
             "failed": len(self.failed),
             "warnings": len(self.warnings),
-            "healthy": self.is_healthy()
+            "healthy": self.is_healthy(),
         }
 
 
@@ -72,11 +78,13 @@ class GoldTableHealthCheck:
         self.log_info = {
             "layer": "gold",
             "job": "health_check",
-            "dataset": f"{catalog}.{schema}"
+            "dataset": f"{catalog}.{schema}",
         }
         try:
-            run_id = spark.conf.get("spark.databricks.clusterUsageTags.runId",
-                                   spark.conf.get("pipeline_run_id", "manual_run"))
+            run_id = spark.conf.get(
+                "spark.databricks.clusterUsageTags.runId",
+                spark.conf.get("pipeline_run_id", "manual_run"),
+            )
         except Exception:
             run_id = "manual_run"
 
@@ -86,7 +94,7 @@ class GoldTableHealthCheck:
         self.tables = {
             "station_facts": f"{catalog}.{schema}.station_facts",
             "station_dim": f"{catalog}.{schema}.station_dim",
-            "weather_dim": f"{catalog}.{schema}.weather_dim"
+            "weather_dim": f"{catalog}.{schema}.weather_dim",
         }
 
     def check_table_exists(self, table_name, full_table_name):
@@ -95,19 +103,19 @@ class GoldTableHealthCheck:
         try:
             exists = self.spark.catalog.tableExists(full_table_name)
             if exists:
-                self.status.add_pass(
-                    check_name, f"Table {full_table_name} exists")
+                self.status.add_pass(check_name, f"Table {full_table_name} exists")
                 self.log(logging.INFO, f"✓ {check_name}")
                 return True
             else:
                 self.status.add_fail(
-                    check_name, f"Table {full_table_name} does not exist")
+                    check_name, f"Table {full_table_name} does not exist"
+                )
                 self.log(logging.ERROR, f"✗ {check_name}")
                 return False
         except Exception as e:
             self.status.add_fail(
-                check_name,
-                f"Error checking table existence: {str(e)}")
+                check_name, f"Error checking table existence: {str(e)}"
+            )
             self.log(logging.ERROR, f"✗ {check_name}: {str(e)}")
             return False
 
@@ -119,19 +127,15 @@ class GoldTableHealthCheck:
             row_count = df.count()
 
             if row_count > 0:
-                self.status.add_pass(
-                    check_name, f"Table has {row_count:,} rows")
+                self.status.add_pass(check_name, f"Table has {row_count:,} rows")
                 self.log(logging.INFO, f"✓ {check_name}: {row_count:,} rows")
                 return True
             else:
-                self.status.add_fail(
-                    check_name, f"Table {full_table_name} is EMPTY")
+                self.status.add_fail(check_name, f"Table {full_table_name} is EMPTY")
                 self.log(logging.ERROR, f"✗ {check_name}: Table is EMPTY")
                 return False
         except Exception as e:
-            self.status.add_fail(
-                check_name,
-                f"Error checking row count: {str(e)}")
+            self.status.add_fail(check_name, f"Error checking row count: {str(e)}")
             self.log(logging.ERROR, f"✗ {check_name}: {str(e)}")
             return False
 
@@ -147,35 +151,30 @@ class GoldTableHealthCheck:
                 if col_name in df.columns:
                     null_count = df.filter(col(col_name).isNull()).count()
                     null_percentage = (
-                        null_count / total_rows * 100) if total_rows > 0 else 0
+                        (null_count / total_rows * 100) if total_rows > 0 else 0
+                    )
 
                     if null_count > 0:
                         null_issues.append(
-                            f"{col_name}: {null_count} NULLs ({null_percentage:.2f}%)")
+                            f"{col_name}: {null_count} NULLs ({null_percentage:.2f}%)"
+                        )
 
             if len(null_issues) == 0:
-                self.status.add_pass(
-                    check_name, f"No NULL values in critical columns")
+                self.status.add_pass(check_name, f"No NULL values in critical columns")
                 self.log(logging.INFO, f"✓ {check_name}")
                 return True
             else:
                 self.status.add_fail(
-                    check_name, f"NULL values found: {', '.join(null_issues)}")
-                self.log(
-                    logging.ERROR, f"✗ {check_name}: {', '.join(null_issues)}")
+                    check_name, f"NULL values found: {', '.join(null_issues)}"
+                )
+                self.log(logging.ERROR, f"✗ {check_name}: {', '.join(null_issues)}")
                 return False
         except Exception as e:
-            self.status.add_fail(
-                check_name,
-                f"Error checking NULL values: {str(e)}")
+            self.status.add_fail(check_name, f"Error checking NULL values: {str(e)}")
             self.log(logging.ERROR, f"✗ {check_name}: {str(e)}")
             return False
 
-    def check_data_freshness(
-            self,
-            table_name,
-            full_table_name,
-            max_age_hours=48):
+    def check_data_freshness(self, table_name, full_table_name, max_age_hours=48):
         """Check if data has been recently ingested"""
         check_name = f"Data Freshness: {table_name}"
         try:
@@ -183,18 +182,15 @@ class GoldTableHealthCheck:
 
             if "ingest_timestamp" not in df.columns:
                 self.status.add_warning(
-                    check_name, f"No ingest_timestamp column in {table_name}")
-                self.log(
-                    logging.WARNING,
-                    f"⚠ {check_name}: No ingest_timestamp column")
+                    check_name, f"No ingest_timestamp column in {table_name}"
+                )
+                self.log(logging.WARNING, f"⚠ {check_name}: No ingest_timestamp column")
                 return True
 
-            max_timestamp = df.select(
-                spark_max("ingest_timestamp")).collect()[0][0]
+            max_timestamp = df.select(spark_max("ingest_timestamp")).collect()[0][0]
 
             if max_timestamp is None:
-                self.status.add_fail(
-                    check_name, f"No timestamp data in {table_name}")
+                self.status.add_fail(check_name, f"No timestamp data in {table_name}")
                 self.log(logging.ERROR, f"✗ {check_name}: No timestamp data")
                 return False
 
@@ -202,21 +198,19 @@ class GoldTableHealthCheck:
 
             if age_hours <= max_age_hours:
                 self.status.add_pass(
-                    check_name, f"Data is fresh ({age_hours:.1f} hours old)")
-                self.log(
-                    logging.INFO, f"✓ {check_name}: {age_hours:.1f} hours old")
+                    check_name, f"Data is fresh ({age_hours:.1f} hours old)"
+                )
+                self.log(logging.INFO, f"✓ {check_name}: {age_hours:.1f} hours old")
                 return True
             else:
                 self.status.add_warning(
-                    check_name, f"Data is stale ({age_hours:.1f} hours old, max: {max_age_hours})")
-                self.log(
-                    logging.WARNING,
-                    f"⚠ {check_name}: {age_hours:.1f} hours old")
+                    check_name,
+                    f"Data is stale ({age_hours:.1f} hours old, max: {max_age_hours})",
+                )
+                self.log(logging.WARNING, f"⚠ {check_name}: {age_hours:.1f} hours old")
                 return True
         except Exception as e:
-            self.status.add_fail(
-                check_name,
-                f"Error checking data freshness: {str(e)}")
+            self.status.add_fail(check_name, f"Error checking data freshness: {str(e)}")
             self.log(logging.ERROR, f"✗ {check_name}: {str(e)}")
             return False
 
@@ -231,26 +225,32 @@ class GoldTableHealthCheck:
                 # Check risk scores are in valid range (0-100+)
                 if "risk_score" in df.columns:
                     invalid_risk = df.filter(
-                        (col("risk_score") < 0) | (
-                            col("risk_score") > 100)).count()
+                        (col("risk_score") < 0) | (col("risk_score") > 100)
+                    ).count()
                     if invalid_risk > 0:
                         self.status.add_warning(
-                            check_name, f"{invalid_risk} records with invalid risk_score")
+                            check_name,
+                            f"{invalid_risk} records with invalid risk_score",
+                        )
                         self.log(
                             logging.WARNING,
-                            f"⚠ {check_name}: {invalid_risk} invalid risk scores")
+                            f"⚠ {check_name}: {invalid_risk} invalid risk scores",
+                        )
 
                 # Check availability is between 0 and 1
                 if "availability" in df.columns:
                     invalid_avail = df.filter(
-                        (col("availability") < 0) | (
-                            col("availability") > 1)).count()
+                        (col("availability") < 0) | (col("availability") > 1)
+                    ).count()
                     if invalid_avail > 0:
                         self.status.add_warning(
-                            check_name, f"{invalid_avail} records with invalid availability")
+                            check_name,
+                            f"{invalid_avail} records with invalid availability",
+                        )
                         self.log(
                             logging.WARNING,
-                            f"⚠ {check_name}: {invalid_avail} invalid availability")
+                            f"⚠ {check_name}: {invalid_avail} invalid availability",
+                        )
 
             elif table_name == "station_dim":
                 # Check for duplicate station_ids
@@ -259,9 +259,9 @@ class GoldTableHealthCheck:
                 if total_count != distinct_count:
                     duplicates = total_count - distinct_count
                     self.status.add_fail(
-                        check_name, f"{duplicates} duplicate station_ids found")
-                    self.log(logging.ERROR,
-                             f"✗ {check_name}: {duplicates} duplicates")
+                        check_name, f"{duplicates} duplicate station_ids found"
+                    )
+                    self.log(logging.ERROR, f"✗ {check_name}: {duplicates} duplicates")
                     return False
 
             elif table_name == "weather_dim":
@@ -269,35 +269,38 @@ class GoldTableHealthCheck:
                 # Fahrenheit)
                 if "temp" in df.columns:
                     invalid_temp = df.filter(
-                        (col("temp") < -50) | (col("temp") > 150)).count()
+                        (col("temp") < -50) | (col("temp") > 150)
+                    ).count()
                     if invalid_temp > 0:
                         self.status.add_warning(
-                            check_name, f"{invalid_temp} records with invalid temperature")
+                            check_name,
+                            f"{invalid_temp} records with invalid temperature",
+                        )
                         self.log(
                             logging.WARNING,
-                            f"⚠ {check_name}: {invalid_temp} invalid temperatures")
+                            f"⚠ {check_name}: {invalid_temp} invalid temperatures",
+                        )
 
             self.status.add_pass(
-                check_name, f"Data quality metrics passed for {table_name}")
+                check_name, f"Data quality metrics passed for {table_name}"
+            )
             self.log(logging.INFO, f"✓ {check_name}")
             return True
 
         except Exception as e:
-            self.status.add_fail(
-                check_name,
-                f"Error checking data quality: {str(e)}")
+            self.status.add_fail(check_name, f"Error checking data quality: {str(e)}")
             self.log(logging.ERROR, f"✗ {check_name}: {str(e)}")
             return False
 
     def run_all_checks(self):
         """Run all health checks for all tables"""
-        self.log(logging.INFO, "="*60)
+        self.log(logging.INFO, "=" * 60)
         self.log(logging.INFO, "Starting Gold Table Health Checks")
-        self.log(logging.INFO, "="*60)
+        self.log(logging.INFO, "=" * 60)
 
         for table_name, full_table_name in self.tables.items():
             self.log(logging.INFO, f"\nChecking table: {table_name}")
-            self.log(logging.INFO, "-"*40)
+            self.log(logging.INFO, "-" * 40)
 
             # Check if table exists
             if not self.check_table_exists(table_name, full_table_name):
@@ -310,17 +313,18 @@ class GoldTableHealthCheck:
             # Define critical columns for each table
             critical_columns = {
                 "station_facts": [
-                    "is_operational", "risk_score", "avg_energy_cost_per_hour"], "station_dim": [
-                    "station_id", "latitude", "longitude"], "weather_dim": [
-                    "weather_sk", "weather", "temp"]}
+                    "is_operational",
+                    "risk_score",
+                    "avg_energy_cost_per_hour",
+                ],
+                "station_dim": ["station_id", "latitude", "longitude"],
+                "weather_dim": ["weather_sk", "weather", "temp"],
+            }
 
             # Check for NULL values in critical columns
             self.check_null_values(
-                table_name,
-                full_table_name,
-                critical_columns.get(
-                    table_name,
-                    []))
+                table_name, full_table_name, critical_columns.get(table_name, [])
+            )
 
             # Check data freshness
             self.check_data_freshness(table_name, full_table_name)
@@ -337,15 +341,15 @@ class GoldTableHealthCheck:
         """Print health check summary"""
         summary = self.status.summary()
 
-        self.log(logging.INFO, "\n" + "="*60)
+        self.log(logging.INFO, "\n" + "=" * 60)
         self.log(logging.INFO, "HEALTH CHECK SUMMARY")
-        self.log(logging.INFO, "="*60)
+        self.log(logging.INFO, "=" * 60)
         self.log(logging.INFO, f"✓ Passed: {summary['passed']}")
         self.log(logging.INFO, f"✗ Failed: {summary['failed']}")
         self.log(logging.INFO, f"⚠ Warnings: {summary['warnings']}")
-        self.log(logging.INFO, "="*60)
+        self.log(logging.INFO, "=" * 60)
 
-        if summary['healthy']:
+        if summary["healthy"]:
             self.log(logging.INFO, "✓ OVERALL STATUS: HEALTHY")
         else:
             self.log(logging.ERROR, "✗ OVERALL STATUS: UNHEALTHY")
@@ -358,15 +362,13 @@ class GoldTableHealthCheck:
             for check_name, message in self.status.warnings:
                 self.log(logging.WARNING, f"  - {check_name}: {message}")
 
-        self.log(logging.INFO, "="*60)
+        self.log(logging.INFO, "=" * 60)
 
 
 def main():
     """Main execution function"""
     # Initialize Spark session
-    spark = SparkSession.builder \
-        .appName("GoldTableHealthCheck") \
-        .getOrCreate()
+    spark = SparkSession.builder.appName("GoldTableHealthCheck").getOrCreate()
 
     try:
         # Run health checks
@@ -383,6 +385,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Health check script failed with error: {str(e)}")
         import traceback
+
         traceback.print_exc()
         sys.exit(2)
 

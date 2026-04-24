@@ -16,10 +16,13 @@ This file contains the functions to be used in the bronze layer of the pipeline
 
 try:
     from pyspark.sql import SparkSession
+
     spark = SparkSession.getActiveSession()
     if spark:
-        run_id = spark.conf.get("spark.databricks.clusterUsageTags.runId", 
-                               spark.conf.get("pipeline_run_id", "unknown"))
+        run_id = spark.conf.get(
+            "spark.databricks.clusterUsageTags.runId",
+            spark.conf.get("pipeline_run_id", "unknown"),
+        )
     else:
         run_id = "unknown"
 except Exception:
@@ -70,7 +73,7 @@ def get_all_stations_data(grid, last_timestamp, api_key, **log_info):
             "compact": "false",
             "maxresults": maxresults,
             "output": "json",
-            "key": api_key  # load API from databricks secrets
+            "key": api_key,  # load API from databricks secrets
         }
 
         ocm_data = fetch_data(ocm_url, ocm_params, **log_info)
@@ -81,8 +84,10 @@ def get_all_stations_data(grid, last_timestamp, api_key, **log_info):
         all_stations.extend(ocm_data)  # Append all pulled stations to list
 
     if len(all_stations) == 0:
-        log(logging.WARNING,
-            "No new data to ingest, keeping current state at timestamp{last_timestamp}")
+        log(
+            logging.WARNING,
+            "No new data to ingest, keeping current state at timestamp{last_timestamp}",
+        )
         return None
     else:
         log(logging.INFO, f"Found {len(all_stations)} rows")
@@ -98,22 +103,22 @@ def convert_to_json_string(all_stations):
 # expected by the bronze layer
 def add_bronze_stations_metadata(df):
     # Add station metadata columns to dataframe
-    return df.withColumn(
-        "UUID", get_json_object(
-            col("raw_text"), "$.UUID")) .withColumn(
-        "ingest_timestamp", lit(
-            datetime.now())) .withColumn(
-        "source_file", get_json_object(
-            col("raw_text"), "$.DataProvider['WebsiteURL']")).coalesce(1).dropDuplicates(
-        ["UUID"])
+    return (
+        df.withColumn("UUID", get_json_object(col("raw_text"), "$.UUID"))
+        .withColumn("ingest_timestamp", lit(datetime.now()))
+        .withColumn(
+            "source_file",
+            get_json_object(col("raw_text"), "$.DataProvider['WebsiteURL']"),
+        )
+        .coalesce(1)
+        .dropDuplicates(["UUID"])
+    )
 
 
 # This function extracts the weather lat and lon from the dataframe
 def get_weather_zone(df, **log_info):
     log = get_job_logger(logger, **log_info, run_id=run_id)
-    df = df.select(
-        "weather_zone_lat",
-        "weather_zone_lon").dropDuplicates().collect()
+    df = df.select("weather_zone_lat", "weather_zone_lon").dropDuplicates().collect()
     log(logging.INFO, f"Found {len(df)} weather zones")
     return df
 
@@ -161,7 +166,8 @@ def get_weather_zone_data(weather_zone, api_key, **log_info):
             snow,
             wind_speed,
             clouds,
-            dt]
+            dt,
+        ]
         all_zones.append(weather_data)
     if len(all_zones) == 0:
         logger.info("No weather zones found")

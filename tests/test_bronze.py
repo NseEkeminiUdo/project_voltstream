@@ -2,7 +2,14 @@ import pytest
 from unittest.mock import patch
 from datetime import datetime, timedelta
 from pyspark.sql import SparkSession
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType, TimestampType
+from pyspark.sql.types import (
+    StructType,
+    StructField,
+    StringType,
+    IntegerType,
+    DoubleType,
+    TimestampType,
+)
 import json
 import os
 
@@ -15,7 +22,7 @@ from utils.bronze import (
     get_weather_zone,
     get_weather_zone_data,
     create_bronze_weather_df,
-    NoUpdatesError
+    NoUpdatesError,
 )
 
 
@@ -115,12 +122,12 @@ def test_add_buffer_midnight():
 
 
 # Tests for get_all_stations_data
-@patch('utils.bronze.fetch_data')
+@patch("utils.bronze.fetch_data")
 def test_get_all_stations_data_success(mock_fetch):
     """Test successful fetching of stations data"""
     mock_fetch.return_value = [
         {"ID": 1, "AddressInfo": {"Title": "Station 1"}},
-        {"ID": 2, "AddressInfo": {"Title": "Station 2"}}
+        {"ID": 2, "AddressInfo": {"Title": "Station 2"}},
     ]
 
     grid = [(40.0, -74.0), (40.1, -74.0)]
@@ -134,7 +141,7 @@ def test_get_all_stations_data_success(mock_fetch):
     assert len(result) == 4
 
 
-@patch('utils.bronze.fetch_data')
+@patch("utils.bronze.fetch_data")
 def test_get_all_stations_data_no_updates(mock_fetch):
     """Test when no new stations are found"""
     mock_fetch.return_value = []
@@ -149,7 +156,7 @@ def test_get_all_stations_data_no_updates(mock_fetch):
     assert result is None
 
 
-@patch('utils.bronze.fetch_data')
+@patch("utils.bronze.fetch_data")
 def test_get_all_stations_data_empty_grid(mock_fetch):
     """Test with empty grid input"""
     grid = []
@@ -163,7 +170,7 @@ def test_get_all_stations_data_empty_grid(mock_fetch):
     mock_fetch.assert_not_called()
 
 
-@patch('utils.bronze.fetch_data')
+@patch("utils.bronze.fetch_data")
 def test_get_all_stations_data_api_exception(mock_fetch):
     """Test when API throws an exception"""
     mock_fetch.side_effect = Exception("API Error")
@@ -180,10 +187,7 @@ def test_get_all_stations_data_api_exception(mock_fetch):
 # Tests for convert_to_json_string
 def test_convert_to_json_string():
     """Test converting station objects to JSON strings"""
-    stations = [
-        {"ID": 1, "name": "Station 1"},
-        {"ID": 2, "name": "Station 2"}
-    ]
+    stations = [{"ID": 1, "name": "Station 1"}, {"ID": 2, "name": "Station 2"}]
 
     result = convert_to_json_string(stations)
 
@@ -203,15 +207,13 @@ def test_convert_to_json_string_empty_list():
 
 def test_convert_to_json_string_special_characters():
     """Test with special characters in data"""
-    stations = [
-        {"ID": 1, "name": "Station's \"Special\" Name", "emoji": "⚡"}
-    ]
+    stations = [{"ID": 1, "name": 'Station\'s "Special" Name', "emoji": "⚡"}]
 
     result = convert_to_json_string(stations)
 
     assert len(result) == 1
     parsed = json.loads(result[0])
-    assert parsed["name"] == "Station's \"Special\" Name"
+    assert parsed["name"] == 'Station\'s "Special" Name'
     assert parsed["emoji"] == "⚡"
 
 
@@ -220,14 +222,12 @@ def test_convert_to_json_string_special_characters():
 def test_add_bronze_stations_metadata(spark):
     """Test adding bronze station metadata to dataframe"""
     json_strings = [
-        json.dumps({
-            "UUID": "uuid1",
-            "DataProvider": {"WebsiteURL": "http://provider1.com"}
-        }),
-        json.dumps({
-            "UUID": "uuid2",
-            "DataProvider": {"WebsiteURL": "http://provider2.com"}
-        })
+        json.dumps(
+            {"UUID": "uuid1", "DataProvider": {"WebsiteURL": "http://provider1.com"}}
+        ),
+        json.dumps(
+            {"UUID": "uuid2", "DataProvider": {"WebsiteURL": "http://provider2.com"}}
+        ),
     ]
 
     df = spark.createDataFrame([(s,) for s in json_strings], ["raw_text"])
@@ -246,7 +246,7 @@ def test_add_bronze_stations_metadata_deduplication(spark):
     json_strings = [
         json.dumps({"UUID": "uuid1"}),
         json.dumps({"UUID": "uuid1"}),
-        json.dumps({"UUID": "uuid2"})
+        json.dumps({"UUID": "uuid2"}),
     ]
 
     df = spark.createDataFrame([(s,) for s in json_strings], ["raw_text"])
@@ -261,7 +261,7 @@ def test_add_bronze_stations_metadata_missing_uuid(spark):
     json_strings = [
         json.dumps({"UUID": "uuid1"}),
         json.dumps({"ID": "id_only"}),
-        json.dumps({"UUID": "uuid2"})
+        json.dumps({"UUID": "uuid2"}),
     ]
 
     df = spark.createDataFrame([(s,) for s in json_strings], ["raw_text"])
@@ -276,7 +276,7 @@ def test_add_bronze_stations_metadata_null_uuid(spark):
     json_strings = [
         json.dumps({"UUID": "uuid1"}),
         json.dumps({"UUID": None}),
-        json.dumps({"UUID": "uuid2"})
+        json.dumps({"UUID": "uuid2"}),
     ]
 
     df = spark.createDataFrame([(s,) for s in json_strings], ["raw_text"])
@@ -289,16 +289,14 @@ def test_add_bronze_stations_metadata_null_uuid(spark):
 @pytest.mark.spark
 def test_get_weather_zone(spark):
     """Test extracting unique weather zones from dataframe"""
-    schema = StructType([
-        StructField("weather_zone_lat", DoubleType(), True),
-        StructField("weather_zone_lon", DoubleType(), True),
-        StructField("station_id", IntegerType(), True)
-    ])
-    data = [
-        (40.7, -74.0, 1),
-        (40.7, -74.0, 2),
-        (40.8, -73.9, 3)
-    ]
+    schema = StructType(
+        [
+            StructField("weather_zone_lat", DoubleType(), True),
+            StructField("weather_zone_lon", DoubleType(), True),
+            StructField("station_id", IntegerType(), True),
+        ]
+    )
+    data = [(40.7, -74.0, 1), (40.7, -74.0, 2), (40.8, -73.9, 3)]
     df = spark.createDataFrame(data, schema)
 
     log_info = {"layer": "bronze", "job": "test", "dataset": "test_dataset"}
@@ -310,11 +308,13 @@ def test_get_weather_zone(spark):
 @pytest.mark.spark
 def test_get_weather_zone_empty_df(spark):
     """Test with empty dataframe"""
-    schema = StructType([
-        StructField("weather_zone_lat", DoubleType(), True),
-        StructField("weather_zone_lon", DoubleType(), True),
-        StructField("station_id", IntegerType(), True)
-    ])
+    schema = StructType(
+        [
+            StructField("weather_zone_lat", DoubleType(), True),
+            StructField("weather_zone_lon", DoubleType(), True),
+            StructField("station_id", IntegerType(), True),
+        ]
+    )
     df = spark.createDataFrame([], schema)
 
     log_info = {"layer": "bronze", "job": "test", "dataset": "test_dataset"}
@@ -326,16 +326,14 @@ def test_get_weather_zone_empty_df(spark):
 @pytest.mark.spark
 def test_get_weather_zone_null_values(spark):
     """Test with null coordinate values"""
-    schema = StructType([
-        StructField("weather_zone_lat", DoubleType(), True),
-        StructField("weather_zone_lon", DoubleType(), True),
-        StructField("station_id", IntegerType(), True)
-    ])
-    data = [
-        (40.7, -74.0, 1),
-        (None, -74.0, 2),
-        (40.8, None, 3)
-    ]
+    schema = StructType(
+        [
+            StructField("weather_zone_lat", DoubleType(), True),
+            StructField("weather_zone_lon", DoubleType(), True),
+            StructField("station_id", IntegerType(), True),
+        ]
+    )
+    data = [(40.7, -74.0, 1), (None, -74.0, 2), (40.8, None, 3)]
     df = spark.createDataFrame(data, schema)
 
     log_info = {"layer": "bronze", "job": "test", "dataset": "test_dataset"}
@@ -345,7 +343,7 @@ def test_get_weather_zone_null_values(spark):
 
 
 # Tests for get_weather_zone_data
-@patch('utils.bronze.fetch_data')
+@patch("utils.bronze.fetch_data")
 def test_get_weather_zone_data_success(mock_fetch):
     """Test fetching weather data for zones"""
     mock_fetch.return_value = {
@@ -357,7 +355,7 @@ def test_get_weather_zone_data_success(mock_fetch):
         "snow": {"1h": 0},
         "wind": {"speed": 5.5},
         "clouds": {"all": 20},
-        "dt": 1640000000
+        "dt": 1640000000,
     }
 
     weather_zones = [(40.7, -74.0)]
@@ -371,7 +369,7 @@ def test_get_weather_zone_data_success(mock_fetch):
     assert len(weather_data) == 13
 
 
-@patch('utils.bronze.fetch_data')
+@patch("utils.bronze.fetch_data")
 def test_get_weather_zone_data_no_data(mock_fetch):
     """Test when no weather data is found"""
     mock_fetch.return_value = {}
@@ -384,7 +382,7 @@ def test_get_weather_zone_data_no_data(mock_fetch):
         get_weather_zone_data(weather_zones, api_key, **log_info)
 
 
-@patch('utils.bronze.fetch_data')
+@patch("utils.bronze.fetch_data")
 def test_get_weather_zone_data_empty_zones(mock_fetch):
     """Test with empty weather zones list"""
     weather_zones = []
@@ -397,7 +395,7 @@ def test_get_weather_zone_data_empty_zones(mock_fetch):
     mock_fetch.assert_not_called()
 
 
-@patch('utils.bronze.fetch_data')
+@patch("utils.bronze.fetch_data")
 def test_get_weather_zone_data_missing_optional_fields(mock_fetch):
     """Test with API response missing optional fields"""
     mock_fetch.return_value = {
@@ -407,7 +405,7 @@ def test_get_weather_zone_data_missing_optional_fields(mock_fetch):
         "visibility": 10000,
         "wind": {"speed": 5.5},
         "clouds": {"all": 20},
-        "dt": 1640000000
+        "dt": 1640000000,
     }
 
     weather_zones = [(40.7, -74.0)]
@@ -428,8 +426,23 @@ def test_create_bronze_weather_df(spark):
     """Test creating bronze weather dataframe"""
     from schema.bronze import weather_api_schema
 
-    weather_data = [[40.7, -74.0, "Clear", "clear sky",
-                     72, 1013, 65, 10000, 0, 0, 5.5, 20, 1640000000]]
+    weather_data = [
+        [
+            40.7,
+            -74.0,
+            "Clear",
+            "clear sky",
+            72,
+            1013,
+            65,
+            10000,
+            0,
+            0,
+            5.5,
+            20,
+            1640000000,
+        ]
+    ]
 
     df = spark.createDataFrame(weather_data, weather_api_schema)
     result_df = create_bronze_weather_df(df)
@@ -456,9 +469,51 @@ def test_create_bronze_weather_df_multiple_records(spark):
     from schema.bronze import weather_api_schema
 
     weather_data = [
-        [40.7, -74.0, "Clear", "clear sky", 72, 1013, 65, 10000, 0, 0, 5.5, 20, 1640000000],
-        [40.8, -73.9, "Rain", "light rain", 68, 1010, 75, 8000, 2, 0, 8.0, 80, 1640000060],
-        [40.9, -73.8, "Snow", "heavy snow", 32, 1005, 90, 5000, 0, 5, 12.0, 100, 1640000120]
+        [
+            40.7,
+            -74.0,
+            "Clear",
+            "clear sky",
+            72,
+            1013,
+            65,
+            10000,
+            0,
+            0,
+            5.5,
+            20,
+            1640000000,
+        ],
+        [
+            40.8,
+            -73.9,
+            "Rain",
+            "light rain",
+            68,
+            1010,
+            75,
+            8000,
+            2,
+            0,
+            8.0,
+            80,
+            1640000060,
+        ],
+        [
+            40.9,
+            -73.8,
+            "Snow",
+            "heavy snow",
+            32,
+            1005,
+            90,
+            5000,
+            0,
+            5,
+            12.0,
+            100,
+            1640000120,
+        ],
     ]
 
     df = spark.createDataFrame(weather_data, weather_api_schema)

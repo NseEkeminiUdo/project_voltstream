@@ -1,18 +1,26 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from utils.bronze import convert_to_json_string, add_bronze_stations_metadata, create_bronze_weather_df
+from utils.bronze import (
+    convert_to_json_string,
+    add_bronze_stations_metadata,
+    create_bronze_weather_df,
+)
 from utils.shared import deduplicate
 from utils.silver import (
-    extract_col_from_json_string, select_station_columns, convert_lat_lon_type,
-    explode_connections, select_conn_columns, add_weather_zone_coordinates,
-    standardize_towns
+    extract_col_from_json_string,
+    select_station_columns,
+    convert_lat_lon_type,
+    explode_connections,
+    select_conn_columns,
+    add_weather_zone_coordinates,
+    standardize_towns,
 )
 from utils.gold import (
     join_tables,
     get_station_status_facts,
     get_station_dim,
     get_weather_dim,
-    add_station_facts_metadata
+    add_station_facts_metadata,
 )
 from pyspark.sql.functions import col
 
@@ -21,41 +29,53 @@ from pyspark.sql.functions import col
 def test_bronze_to_silver_stations_flow(spark):
     """Test the end-to-end flow from bronze to silver layer for stations data"""
     # Create sample API data
-    stations_api_data = [{"ID": 1,
-                          "UUID": "uuid-1",
-                          "AddressInfo": {"Title": "Station 1",
-                                          "AddressLine1": "123 Main St",
-                                          "Town": "New York",
-                                          "StateOrProvince": "NY",
-                                          "Latitude": 40.7128,
-                                          "Longitude": -74.0060},
-                          "Connections": [{"ConnectionTypeID": 1,
-                                           "ConnectionType": {"Title": "Type1"},
-                                           "LevelID": 2,
-                                           "Amps": 32,
-                                           "Voltage": 240,
-                                           "PowerKW": 7.68,
-                                           "Quantity": 2,
-                                           "CurrentType": {"Title": "AC"}}],
-                          "StatusType": {"Title": "Operational",
-                                         "ID": 50},
-                          "DateLastStatusUpdate": "2025-01-15T10:00:00",
-                          "DateCreated": "2024-01-01T00:00:00",
-                          "DataProvider": {"WebsiteURL": "http://provider.com"}},
-                         {"ID": 2,
-                          "UUID": "uuid-2",
-                          "AddressInfo": {"Title": "Station 2",
-                                          "AddressLine1": "456 Elm St",
-                                          "Town": "Newark",
-                                          "StateOrProvince": "NJ",
-                                          "Latitude": 40.7357,
-                                          "Longitude": -74.1724},
-                          "Connections": [],
-                          "StatusType": {"Title": "Available",
-                                         "ID": 20},
-                          "DateLastStatusUpdate": "2025-01-16T12:00:00",
-                          "DateCreated": "2024-02-01T00:00:00",
-                          "DataProvider": {"WebsiteURL": "http://provider.com"}}]
+    stations_api_data = [
+        {
+            "ID": 1,
+            "UUID": "uuid-1",
+            "AddressInfo": {
+                "Title": "Station 1",
+                "AddressLine1": "123 Main St",
+                "Town": "New York",
+                "StateOrProvince": "NY",
+                "Latitude": 40.7128,
+                "Longitude": -74.0060,
+            },
+            "Connections": [
+                {
+                    "ConnectionTypeID": 1,
+                    "ConnectionType": {"Title": "Type1"},
+                    "LevelID": 2,
+                    "Amps": 32,
+                    "Voltage": 240,
+                    "PowerKW": 7.68,
+                    "Quantity": 2,
+                    "CurrentType": {"Title": "AC"},
+                }
+            ],
+            "StatusType": {"Title": "Operational", "ID": 50},
+            "DateLastStatusUpdate": "2025-01-15T10:00:00",
+            "DateCreated": "2024-01-01T00:00:00",
+            "DataProvider": {"WebsiteURL": "http://provider.com"},
+        },
+        {
+            "ID": 2,
+            "UUID": "uuid-2",
+            "AddressInfo": {
+                "Title": "Station 2",
+                "AddressLine1": "456 Elm St",
+                "Town": "Newark",
+                "StateOrProvince": "NJ",
+                "Latitude": 40.7357,
+                "Longitude": -74.1724,
+            },
+            "Connections": [],
+            "StatusType": {"Title": "Available", "ID": 20},
+            "DateLastStatusUpdate": "2025-01-16T12:00:00",
+            "DateCreated": "2024-02-01T00:00:00",
+            "DataProvider": {"WebsiteURL": "http://provider.com"},
+        },
+    ]
 
     # Bronze layer processing
     json_strings = convert_to_json_string(stations_api_data)
@@ -92,7 +112,8 @@ def test_bronze_to_silver_stations_flow(spark):
 
     # Test connections explosion
     connections_df = explode_connections(
-        df, layer="silver", job="test", dataset="connections")
+        df, layer="silver", job="test", dataset="connections"
+    )
     connections_df = select_conn_columns(connections_df)
 
     # Verify connections
@@ -123,13 +144,13 @@ def test_standardize_towns_integration(spark):
                 "Town": "NYC",  # Will be standardized to proper town name
                 "StateOrProvince": "NY",
                 "Latitude": 40.7128,
-                "Longitude": -74.0060
+                "Longitude": -74.0060,
             },
             "Connections": [],
             "StatusType": {"Title": "Operational", "ID": 50},
             "DateLastStatusUpdate": "2025-01-15T10:00:00",
             "DateCreated": "2024-01-01T00:00:00",
-            "DataProvider": {"WebsiteURL": "http://provider.com"}
+            "DataProvider": {"WebsiteURL": "http://provider.com"},
         },
         {
             "ID": 2,
@@ -140,14 +161,14 @@ def test_standardize_towns_integration(spark):
                 "Town": "Nwk",  # Will be standardized to proper town name
                 "StateOrProvince": "NJ",
                 "Latitude": 40.7357,
-                "Longitude": -74.1724
+                "Longitude": -74.1724,
             },
             "Connections": [],
             "StatusType": {"Title": "Available", "ID": 20},
             "DateLastStatusUpdate": "2025-01-16T12:00:00",
             "DateCreated": "2024-02-01T00:00:00",
-            "DataProvider": {"WebsiteURL": "http://provider.com"}
-        }
+            "DataProvider": {"WebsiteURL": "http://provider.com"},
+        },
     ]
 
     # Bronze layer processing
@@ -161,8 +182,9 @@ def test_standardize_towns_integration(spark):
     silver_df = select_station_columns(df)
     silver_df = convert_lat_lon_type(silver_df)
 
-    with patch('geopandas.read_parquet') as mock_read_parquet, \
-            patch('geopandas.sjoin_nearest') as mock_sjoin_nearest:
+    with patch("geopandas.read_parquet") as mock_read_parquet, patch(
+        "geopandas.sjoin_nearest"
+    ) as mock_sjoin_nearest:
 
         # Mock the clipped parquet file (geographic boundary data)
         mock_clipped = MagicMock()
@@ -170,23 +192,29 @@ def test_standardize_towns_integration(spark):
 
         # Mock the result of spatial join
         import pandas as pd
-        mock_joined_data = pd.DataFrame({
-            "station_id": [1, 2],
-            "title": ["Station 1", "Station 2"],
-            "address": ["123 Main St", "456 Elm St"],
-            "state_or_province": ["New York", "New Jersey"],
-            "latitude": [40.7128, 40.7357],
-            "longitude": [-74.0060, -74.1724],
-            "status": ["Operational", "Available"],
-            "status_id": [50, 20],
-            "date_last_status_update": ["2025-01-15T10:00:00", "2025-01-16T12:00:00"],
-            "date_created": ["2024-01-01T00:00:00", "2024-02-01T00:00:00"],
-            "name": ["Manhattan", "Newark"],  # Standardized town names
-            "geometry": [None, None],  # Will be dropped
-            "distance": [0.1, 0.2],  # Will be dropped
-            "town": ["NYC", "Nwk"],  # Original town names (will be dropped)
-            "index_right": [0, 1]  # Will be dropped
-        })
+
+        mock_joined_data = pd.DataFrame(
+            {
+                "station_id": [1, 2],
+                "title": ["Station 1", "Station 2"],
+                "address": ["123 Main St", "456 Elm St"],
+                "state_or_province": ["New York", "New Jersey"],
+                "latitude": [40.7128, 40.7357],
+                "longitude": [-74.0060, -74.1724],
+                "status": ["Operational", "Available"],
+                "status_id": [50, 20],
+                "date_last_status_update": [
+                    "2025-01-15T10:00:00",
+                    "2025-01-16T12:00:00",
+                ],
+                "date_created": ["2024-01-01T00:00:00", "2024-02-01T00:00:00"],
+                "name": ["Manhattan", "Newark"],  # Standardized town names
+                "geometry": [None, None],  # Will be dropped
+                "distance": [0.1, 0.2],  # Will be dropped
+                "town": ["NYC", "Nwk"],  # Original town names (will be dropped)
+                "index_right": [0, 1],  # Will be dropped
+            }
+        )
         mock_sjoin_nearest.return_value = mock_joined_data
 
         # Apply standardize_towns
@@ -194,7 +222,8 @@ def test_standardize_towns_integration(spark):
 
         # Verify standardize_towns was called with correct arguments
         mock_read_parquet.assert_called_once_with(
-            "/Volumes/bronze_dev/superstor_schema/raw_superstore/clipped.parquet")
+            "/Volumes/bronze_dev/superstor_schema/raw_superstore/clipped.parquet"
+        )
         mock_sjoin_nearest.assert_called_once()
 
         # Verify the integration results
@@ -213,10 +242,16 @@ def test_standardize_towns_integration(spark):
         assert "Newark" in town_names
 
         # Verify original data integrity (other columns unchanged)
-        assert standardized_df.filter(col("station_id") == 1).collect()[
-            0]["title"] == "Station 1"
-        assert standardized_df.filter(col("station_id") == 2).collect()[
-            0]["state_or_province"] == "New Jersey"
+        assert (
+            standardized_df.filter(col("station_id") == 1).collect()[0]["title"]
+            == "Station 1"
+        )
+        assert (
+            standardized_df.filter(col("station_id") == 2).collect()[0][
+                "state_or_province"
+            ]
+            == "New Jersey"
+        )
 
 
 @pytest.mark.integration
@@ -237,7 +272,7 @@ def test_bronze_to_silver_weather_flow(spark):
             "snow": 0.0,
             "wind_speed": 5.5,
             "clouds": 10,
-            "dt": 1705320000
+            "dt": 1705320000,
         },
         {
             "lat": 40.8,
@@ -252,8 +287,8 @@ def test_bronze_to_silver_weather_flow(spark):
             "snow": 0.0,
             "wind_speed": 8.0,
             "clouds": 75,
-            "dt": 1705320000
-        }
+            "dt": 1705320000,
+        },
     ]
 
     # Bronze layer processing - create DataFrame directly
@@ -268,12 +303,14 @@ def test_bronze_to_silver_weather_flow(spark):
 
     # Verify data content
     clear_weather = bronze_weather_df.filter(
-        bronze_weather_df["weather"] == "Clear").collect()[0]
+        bronze_weather_df["weather"] == "Clear"
+    ).collect()[0]
     assert clear_weather["temp"] == 72.5
     assert clear_weather["humidity"] == 65
 
     rainy_weather = bronze_weather_df.filter(
-        bronze_weather_df["weather"] == "Rain").collect()[0]
+        bronze_weather_df["weather"] == "Rain"
+    ).collect()[0]
     assert rainy_weather["rain"] == 2.5
 
 
@@ -283,51 +320,155 @@ def test_silver_to_gold_complete_flow(spark):
     # Create silver stations data with weather_zone coordinates and address
     # fields
     from pyspark.sql.functions import to_date
+
     stations_data = [
-        (1, "Station 1", "123 Main St", "New York", "New York", 40.7, -74.0,
-         40.7, -74.0, 50, "2025-01-15", "2025-01-01", "2025-01-15",
-         "2999-12-31"),
-        (2, "Station 2", "456 Elm St", "Newark", "New Jersey", 40.8, -74.1,
-         40.8, -74.1, 30, "2025-01-16", "2025-01-02", "2025-01-16",
-         "2999-12-31")]
+        (
+            1,
+            "Station 1",
+            "123 Main St",
+            "New York",
+            "New York",
+            40.7,
+            -74.0,
+            40.7,
+            -74.0,
+            50,
+            "2025-01-15",
+            "2025-01-01",
+            "2025-01-15",
+            "2999-12-31",
+        ),
+        (
+            2,
+            "Station 2",
+            "456 Elm St",
+            "Newark",
+            "New Jersey",
+            40.8,
+            -74.1,
+            40.8,
+            -74.1,
+            30,
+            "2025-01-16",
+            "2025-01-02",
+            "2025-01-16",
+            "2999-12-31",
+        ),
+    ]
     stations_df = spark.createDataFrame(
         stations_data,
-        ["station_id", "title", "address", "town", "state_or_province",
-         "latitude", "longitude", "weather_zone_lat", "weather_zone_lon",
-         "status_id", "date_last_status_update", "date_created", "vf", "vt"])
-    stations_df = stations_df.withColumn("valid_from", to_date(col("vf")))\
-        .withColumn("valid_to", to_date(col("vt")))\
+        [
+            "station_id",
+            "title",
+            "address",
+            "town",
+            "state_or_province",
+            "latitude",
+            "longitude",
+            "weather_zone_lat",
+            "weather_zone_lon",
+            "status_id",
+            "date_last_status_update",
+            "date_created",
+            "vf",
+            "vt",
+        ],
+    )
+    stations_df = (
+        stations_df.withColumn("valid_from", to_date(col("vf")))
+        .withColumn("valid_to", to_date(col("vt")))
         .drop("vf", "vt")
+    )
 
     # Create silver weather data (after transform_weather)
     from pyspark.sql.functions import to_timestamp
+
     weather_data = [
-        (40.7, -74.0, 1, "Clear", "clear sky", 72.5, 1013, 65, 10000, 0.0, 0.0,
-         5.5, 10, "2025-01-15 10:00:00", 123456),
-        (40.8, -74.1, 2, "Rain", "light rain", 68.0, 1010, 85, 8000, 2.5, 0.0,
-         8.0, 75, "2025-01-16 12:00:00", 234567)]
+        (
+            40.7,
+            -74.0,
+            1,
+            "Clear",
+            "clear sky",
+            72.5,
+            1013,
+            65,
+            10000,
+            0.0,
+            0.0,
+            5.5,
+            10,
+            "2025-01-15 10:00:00",
+            123456,
+        ),
+        (
+            40.8,
+            -74.1,
+            2,
+            "Rain",
+            "light rain",
+            68.0,
+            1010,
+            85,
+            8000,
+            2.5,
+            0.0,
+            8.0,
+            75,
+            "2025-01-16 12:00:00",
+            234567,
+        ),
+    ]
     weather_df = spark.createDataFrame(
         weather_data,
-        ["lat", "lon", "weather_zone_id", "weather", "description", "temp",
-         "pressure", "humidity", "visibility", "rain", "snow", "wind_speed",
-         "clouds", "dt_str", "weather_sk"])
-    weather_df = weather_df.withColumn(
-        "dt_utc", to_timestamp(
-            col("dt_str"))).drop("dt_str")
+        [
+            "lat",
+            "lon",
+            "weather_zone_id",
+            "weather",
+            "description",
+            "temp",
+            "pressure",
+            "humidity",
+            "visibility",
+            "rain",
+            "snow",
+            "wind_speed",
+            "clouds",
+            "dt_str",
+            "weather_sk",
+        ],
+    )
+    weather_df = weather_df.withColumn("dt_utc", to_timestamp(col("dt_str"))).drop(
+        "dt_str"
+    )
 
     # Create silver connectors data with valid_from and valid_to
     connectors_data = [
         (1, 1, "Type1", 2, 32, 240, 7.68, 2, "AC", "2025-01-15", "2999-12-31"),
-        (2, 2, "CHAdeMO", 3, 125, 500, 62.5, 1, "DC", "2025-01-16", "2999-12-31")
+        (2, 2, "CHAdeMO", 3, 125, 500, 62.5, 1, "DC", "2025-01-16", "2999-12-31"),
     ]
     connectors_df = spark.createDataFrame(
         connectors_data,
-        ["station_id", "connection_type_id", "connection_type", "level_id",
-         "amps", "voltage", "power_kw", "quantity", "current_type", "vf",
-         "vt"])
-    connectors_df = connectors_df.withColumn("valid_from", to_date(col("vf")))\
-        .withColumn("valid_to", to_date(col("vt")))\
+        [
+            "station_id",
+            "connection_type_id",
+            "connection_type",
+            "level_id",
+            "amps",
+            "voltage",
+            "power_kw",
+            "quantity",
+            "current_type",
+            "vf",
+            "vt",
+        ],
+    )
+    connectors_df = (
+        connectors_df.withColumn("valid_from", to_date(col("vf")))
+        .withColumn("valid_to", to_date(col("vt")))
         .drop("vf", "vt")
+    )
 
     # Gold layer processing - use join_tables which does everything
     joined_df = join_tables(stations_df, connectors_df, weather_df)
@@ -374,13 +515,13 @@ def test_end_to_end_data_quality(spark):
                 "Town": "Test City",
                 "StateOrProvince": "NY",
                 "Latitude": 40.7500,
-                "Longitude": -74.0000
+                "Longitude": -74.0000,
             },
             "Connections": [{"type": "CHAdeMO"}],
             "StatusType": {"Title": "Operational", "ID": 50},
             "DateLastStatusUpdate": "2025-01-01T10:00:00",
             "DateCreated": "2024-01-01T00:00:00",
-            "DataProvider": {"WebsiteURL": "http://provider.com"}
+            "DataProvider": {"WebsiteURL": "http://provider.com"},
         }
     ]
 

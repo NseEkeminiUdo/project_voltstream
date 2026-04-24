@@ -47,14 +47,16 @@ def set_up_logger(log_to_file=False, log_file=None):
 def get_job_logger(logger, layer=None, job=None, dataset=None, run_id=None):
 
     def log(level, message, **kwargs):
-        logger.log(level,
-                   message,
-                   extra={
-                       "layer": layer,
-                       "job": job,
-                       "run_id": run_id,
-                       "dataset": dataset, **kwargs
-                   }
-                   )
+        logger.log(
+            level,
+            message,
+            extra={
+                "layer": layer,
+                "job": job,
+                "run_id": run_id,
+                "dataset": dataset,
+                **kwargs,
+            },
+        )
 
     return log

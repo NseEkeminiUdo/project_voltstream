@@ -37,15 +37,16 @@ from pathlib import Path
 
 def print_banner(text):
     """Print a formatted banner"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print(f"  {text}")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
 
 def check_pytest_installed():
     """Check if pytest is installed"""
     try:
         import pytest
+
         return True
     except ImportError:
         return False
@@ -78,30 +79,32 @@ def run_tests(args):
     # Select test scope
     if args.unit_only:
         print("Running UNIT TESTS only...\n")
-        pytest_args.extend([
-            'tests/test_shared.py',
-            'tests/test_bronze.py',
-            'tests/test_silver.py',
-            'tests/test_gold.py'
-        ])
+        pytest_args.extend(
+            [
+                "tests/test_shared.py",
+                "tests/test_bronze.py",
+                "tests/test_silver.py",
+                "tests/test_gold.py",
+            ]
+        )
     elif args.integration_only:
         print("Running INTEGRATION TESTS only...\n")
-        pytest_args.append('tests/test_integration.py')
+        pytest_args.append("tests/test_integration.py")
     else:
         print("Running ALL TESTS...\n")
-        pytest_args.append('tests/')
+        pytest_args.append("tests/")
 
     # Add verbosity
     if args.verbose:
-        pytest_args.append('-v')
+        pytest_args.append("-v")
 
     # Add failfast
     if args.failfast:
-        pytest_args.append('-x')
+        pytest_args.append("-x")
 
     # Add markers
     if args.markers:
-        pytest_args.extend(['-m', args.markers])
+        pytest_args.extend(["-m", args.markers])
 
     # Add coverage
     if args.coverage:
@@ -110,14 +113,12 @@ def run_tests(args):
             print("Install with: pip install pytest-cov")
             return 2
 
-        pytest_args.extend([
-            '--cov=utils',
-            '--cov-report=html',
-            '--cov-report=term-missing'
-        ])
+        pytest_args.extend(
+            ["--cov=utils", "--cov-report=html", "--cov-report=term-missing"]
+        )
 
     # Add color output
-    pytest_args.append('--color=yes')
+    pytest_args.append("--color=yes")
 
     # Get project root directory (parent of tests/ directory)
     project_root = Path(__file__).parent.parent.resolve()
@@ -130,13 +131,15 @@ def run_tests(args):
             cwd=project_root,
             capture_output=False,  # Let output stream to console
             text=True,
-            check=False  # Don't raise exception on non-zero exit
+            check=False,  # Don't raise exception on non-zero exit
         )
         exit_code = result.returncode
 
     except FileNotFoundError as e:
         print("\033[91mError: Python executable not found.\033[0m")
-        print("This should not happen. Ensure your environment is correctly configured.")
+        print(
+            "This should not happen. Ensure your environment is correctly configured."
+        )
         print(f"sys.executable: {sys.executable}")
         print(f"Error details: {e}")
         exit_code = 2
@@ -150,6 +153,7 @@ def run_tests(args):
         # Catch any unexpected exceptions
         print(f"\033[91mUnexpected error running pytest: {e}\033[0m")
         import traceback
+
         traceback.print_exc()
         exit_code = 2
 
@@ -166,6 +170,7 @@ def check_coverage_installed():
     """Check if pytest-cov is installed"""
     try:
         import pytest_cov
+
         return True
     except ImportError:
         return False
@@ -175,7 +180,7 @@ def main():
     """Main execution function"""
     sys
     parser = argparse.ArgumentParser(
-        description='Run project_voltstream test suite with pytest',
+        description="Run project_voltstream test suite with pytest",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -185,43 +190,38 @@ Examples:
   python run_tests.py --coverage         # Run with coverage report
   python run_tests.py -x                 # Stop on first failure
   python run_tests.py -m "not slow"      # Skip slow tests
-        """
+        """,
     )
 
     parser.add_argument(
-        '-v', '--verbose',
-        action='store_true',
-        help='Run tests with verbose output'
+        "-v", "--verbose", action="store_true", help="Run tests with verbose output"
     )
 
     parser.add_argument(
-        '--unit-only',
-        action='store_true',
-        help='Run only unit tests (skip integration tests)'
+        "--unit-only",
+        action="store_true",
+        help="Run only unit tests (skip integration tests)",
     )
 
     parser.add_argument(
-        '--integration-only',
-        action='store_true',
-        help='Run only integration tests'
+        "--integration-only", action="store_true", help="Run only integration tests"
     )
 
     parser.add_argument(
-        '--coverage',
-        action='store_true',
-        help='Run with coverage report (requires pytest-cov)'
+        "--coverage",
+        action="store_true",
+        help="Run with coverage report (requires pytest-cov)",
     )
 
     parser.add_argument(
-        '-x', '--failfast',
-        action='store_true',
-        help='Stop on first test failure'
+        "-x", "--failfast", action="store_true", help="Stop on first test failure"
     )
 
     parser.add_argument(
-        '-m', '--markers',
+        "-m",
+        "--markers",
         type=str,
-        help='Run tests matching specific markers (e.g., "not slow")'
+        help='Run tests matching specific markers (e.g., "not slow")',
     )
 
     args = parser.parse_args()
@@ -229,7 +229,8 @@ Examples:
     # Validate argument combinations
     if args.unit_only and args.integration_only:
         print(
-            "\033[91mError: Cannot specify both --unit-only and --integration-only\033[0m")
+            "\033[91mError: Cannot specify both --unit-only and --integration-only\033[0m"
+        )
         return 2
 
     try:
@@ -241,6 +242,7 @@ Examples:
     except Exception as e:
         print(f"\n\033[91mError running tests: {e}\033[0m")
         import traceback
+
         traceback.print_exc()
         sys.exit(2)
 
