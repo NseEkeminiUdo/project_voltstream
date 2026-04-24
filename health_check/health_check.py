@@ -121,8 +121,7 @@ class GoldTableHealthCheck:
 
             if row_count > 0:
                 self.status.add_pass(
-                    check_name, f"Table has {
-                        row_count:,} rows")
+                    check_name, f"Table has {row_count:,} rows")
                 self.log(logging.INFO, f"✓ {check_name}: {row_count:,} rows")
                 return True
             else:
