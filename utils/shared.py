@@ -12,11 +12,42 @@ import logging
 This file contains functions that are shared by all the layers of the pipeline
 """
 
+def get_run_context(spark):
+    """
+    Get runtime context information from Spark configuration.
+    
+    When running as a Databricks Job, set these parameters in the task configuration:
+    - pipeline_run_id = {{job.run_id}}
+    - pipeline_job_id = {{job.id}}
+    - pipeline_task_name = {{task.name}}
+    - pipeline_env = prod/dev/test
+    
+    Args:
+        spark: Active SparkSession
+        
+    Returns:
+        dict: Context information with run_id, job_id, task_key, and env
+    """
+    return {
+        "run_id": spark.conf.get("spark.databricks.clusterUsageTags.runId",
+                                spark.conf.get("pipeline_run_id", "local")),
+        "job_id": spark.conf.get("spark.databricks.clusterUsageTags.jobId",
+                                spark.conf.get("pipeline_job_id", "local")),
+        "task_name": spark.conf.get("pipeline_task_name", "local"),
+        "env": spark.conf.get("pipeline_env", "dev")
+    }
+
+
+
 try:
-    context = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
-    run_id = context.tags().get("runId").get()
-except BaseException:
-    # Fallback for when running as a file (not a notebook)
+    from pyspark.sql import SparkSession
+    spark = SparkSession.getActiveSession()
+    if spark:
+        run_id = spark.conf.get("spark.databricks.clusterUsageTags.runId", 
+                               spark.conf.get("pipeline_run_id", "unknown"))
+    else:
+        run_id = "unknown"
+except Exception:
     run_id = "unknown"
 
 logger = set_up_logger()

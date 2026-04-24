@@ -9,10 +9,14 @@ This file contains functions to be used in the gold layer of the pipeline
 """
 
 try:
-    context = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
-    run_id = context.tags().get("runId").get()
-except BaseException:
-    # Fallback for when running as a file (not a notebook)
+    from pyspark.sql import SparkSession
+    spark = SparkSession.getActiveSession()
+    if spark:
+        run_id = spark.conf.get("spark.databricks.clusterUsageTags.runId", 
+                               spark.conf.get("pipeline_run_id", "unknown"))
+    else:
+        run_id = "unknown"
+except Exception:
     run_id = "unknown"
 
 logger = set_up_logger()

@@ -108,8 +108,7 @@ class GoldTableHealthCheck:
         except Exception as e:
             self.status.add_fail(
                 check_name,
-                f"Error checking table existence: {
-                    str(e)}")
+                f"Error checking table existence: {str(e)}")
             self.log(logging.ERROR, f"✗ {check_name}: {str(e)}")
             return False
 
