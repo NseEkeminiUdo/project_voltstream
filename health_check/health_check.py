@@ -132,8 +132,7 @@ class GoldTableHealthCheck:
         except Exception as e:
             self.status.add_fail(
                 check_name,
-                f"Error checking row count: {
-                    str(e)}")
+                f"Error checking row count: {str(e)}")
             self.log(logging.ERROR, f"✗ {check_name}: {str(e)}")
             return False
 
@@ -163,17 +162,14 @@ class GoldTableHealthCheck:
                 return True
             else:
                 self.status.add_fail(
-                    check_name, f"NULL values found: {
-                        ', '.join(null_issues)}")
+                    check_name, f"NULL values found: {', '.join(null_issues)}")
                 self.log(
-                    logging.ERROR, f"✗ {check_name}: {
-                        ', '.join(null_issues)}")
+                    logging.ERROR, f"✗ {check_name}: {', '.join(null_issues)}")
                 return False
         except Exception as e:
             self.status.add_fail(
                 check_name,
-                f"Error checking NULL values: {
-                    str(e)}")
+                f"Error checking NULL values: {str(e)}")
             self.log(logging.ERROR, f"✗ {check_name}: {str(e)}")
             return False
 
@@ -208,26 +204,21 @@ class GoldTableHealthCheck:
 
             if age_hours <= max_age_hours:
                 self.status.add_pass(
-                    check_name, f"Data is fresh ({
-                        age_hours:.1f} hours old)")
+                    check_name, f"Data is fresh ({age_hours:.1f} hours old)")
                 self.log(
-                    logging.INFO, f"✓ {check_name}: {
-                        age_hours:.1f} hours old")
+                    logging.INFO, f"✓ {check_name}: {age_hours:.1f} hours old")
                 return True
             else:
                 self.status.add_warning(
-                    check_name, f"Data is stale ({
-                        age_hours:.1f} hours old, max: {max_age_hours})")
+                    check_name, f"Data is stale ({age_hours:.1f} hours old, max: {max_age_hours})")
                 self.log(
                     logging.WARNING,
-                    f"⚠ {check_name}: {
-                        age_hours:.1f} hours old")
+                    f"⚠ {check_name}: {age_hours:.1f} hours old")
                 return True
         except Exception as e:
             self.status.add_fail(
                 check_name,
-                f"Error checking data freshness: {
-                    str(e)}")
+                f"Error checking data freshness: {str(e)}")
             self.log(logging.ERROR, f"✗ {check_name}: {str(e)}")
             return False
 
@@ -296,8 +287,7 @@ class GoldTableHealthCheck:
         except Exception as e:
             self.status.add_fail(
                 check_name,
-                f"Error checking data quality: {
-                    str(e)}")
+                f"Error checking data quality: {str(e)}")
             self.log(logging.ERROR, f"✗ {check_name}: {str(e)}")
             return False
 
