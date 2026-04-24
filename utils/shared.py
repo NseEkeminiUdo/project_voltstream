@@ -3,7 +3,6 @@ from datetime import datetime
 from pyspark.sql.functions import col, lit
 from delta.tables import DeltaTable
 from logger.custom_logging import set_up_logger, get_job_logger
-from pyspark.dbutils import DBUtils
 from pyspark.sql import SparkSession
 import time
 import logging
