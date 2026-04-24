@@ -152,8 +152,7 @@ class GoldTableHealthCheck:
 
                     if null_count > 0:
                         null_issues.append(
-                            f"{col_name}: {null_count} NULLs ({
-                                null_percentage:.2f}%)")
+                            f"{col_name}: {null_count} NULLs ({null_percentage:.2f}%)")
 
             if len(null_issues) == 0:
                 self.status.add_pass(
