@@ -67,35 +67,49 @@ class ValidationRunner:
         
         return all_valid
     
-    def check_undefined_names(self):
-        """Check for undefined dbutils references"""
-        self.print_header("2. CHECKING FOR UNDEFINED NAMES")
+    def check_dbutils_usage(self):
+        """Check for proper dbutils usage (should use wrapper functions)"""
+        self.print_header("2. CHECKING DBUTILS USAGE")
         
-        files = [
-            "health_check/health_check.py",
-            "utils/bronze.py",
-            "utils/gold.py",
-            "utils/shared.py",
-            "utils/silver.py"
+        files = list(self.project_root.rglob('*.py'))
+        files = [f for f in files if '__pycache__' not in str(f) and '.git' not in str(f)]
+        
+        # Patterns that should NOT be used directly
+        bad_patterns = [
+            'dbutils.notebook.entry_point',  # Should use spark.conf
+            'dbutils.secrets.get(',          # Should use get_secret()
+            'dbutils.jobs.taskValues.set(',  # Should use set_task_value()
         ]
         
+        # Files that are allowed to have direct dbutils access (the wrapper module)
+        allowed_files = ['utils/shared.py', 'validate.py']
+        
         all_clean = True
-        for rel_path in files:
-            filepath = self.project_root / rel_path
-            if not filepath.exists():
+        for filepath in files:
+            rel_path = filepath.relative_to(self.project_root)
+            
+            # Skip allowed files
+            if str(rel_path) in allowed_files:
+                print(f"{BLUE}• SKIP{RESET} {str(rel_path):40s} (wrapper module)")
                 continue
-                
+            
             with open(filepath, 'r') as f:
                 content = f.read()
             
-            # Check for problematic dbutils usage
-            if "dbutils.notebook.entry_point" in content:
-                print(f"{RED}✗ FAIL{RESET} {rel_path:40s} (dbutils.notebook.entry_point found)")
-                self.failed.append(f"Undefined dbutils in {rel_path}")
+            found_issues = []
+            for pattern in bad_patterns:
+                if pattern in content:
+                    found_issues.append(pattern)
+            
+            if found_issues:
+                print(f"{RED}✗ FAIL{RESET} {str(rel_path):40s}")
+                for issue in found_issues:
+                    print(f"         Found: {issue}")
+                self.failed.append(f"Direct dbutils usage in {rel_path}")
                 all_clean = False
             else:
-                print(f"{GREEN}✓ PASS{RESET} {rel_path:40s}")
-                self.passed.append(f"No undefined dbutils: {rel_path}")
+                print(f"{GREEN}✓ PASS{RESET} {str(rel_path):40s}")
+                self.passed.append(f"Proper dbutils usage: {rel_path}")
         
         return all_clean
     
@@ -108,6 +122,8 @@ class ValidationRunner:
         
         modules_to_test = [
             ("utils.shared", "get_run_context"),
+            ("utils.shared", "get_secret"),
+            ("utils.shared", "set_task_value"),
             ("utils.bronze", None),
             ("utils.silver", None),
             ("utils.gold", None)
@@ -205,7 +221,7 @@ class ValidationRunner:
         """Run all validation checks"""
         checks = [
             self.check_python_syntax(),
-            self.check_undefined_names(),
+            self.check_dbutils_usage(),
             self.check_imports(),
             self.check_notebook_paths(),
             self.check_path_typos()

@@ -38,6 +38,247 @@ def get_run_context(spark):
     }
 
 
+def get_dbutils(spark=None):
+    """
+    Safely get dbutils instance.
+    
+    Args:
+        spark: Optional SparkSession. If not provided, gets active session.
+        
+    Returns:
+        dbutils instance or None if not available
+    """
+    try:
+        from pyspark.dbutils import DBUtils
+        if spark is None:
+            from pyspark.sql import SparkSession
+            spark = SparkSession.getActiveSession()
+        return DBUtils(spark)
+    except Exception:
+        return None
+
+
+def get_secret(scope, key, default=None):
+    """
+    Get secret from Databricks secret scope.
+    
+    Args:
+        scope: Secret scope name
+        key: Secret key name
+        default: Default value if secret not available
+        
+    Returns:
+        Secret value or default
+        
+    Raises:
+        RuntimeError: If secret not available and no default provided
+    """
+    dbutils = get_dbutils()
+    if dbutils is None:
+        if default is not None:
+            return default
+        raise RuntimeError(
+            f"dbutils not available and no default provided for secret {scope}/{key}"
+        )
+    
+    try:
+        return dbutils.secrets.get(scope=scope, key=key)
+    except Exception as e:
+        if default is not None:
+            return default
+        raise RuntimeError(f"Failed to get secret {scope}/{key}: {e}")
+
+
+def set_task_value(key, value):
+    """
+    Set a task value for inter-task communication in Databricks Jobs.
+    
+    Args:
+        key: Task value key
+        value: Task value (will be converted to string)
+        
+    Returns:
+        True if successful, False if dbutils not available
+    """
+    dbutils = get_dbutils()
+    if dbutils is None:
+        print(f"Warning: dbutils not available, cannot set task value {key}={value}")
+        return False
+    
+    try:
+        dbutils.jobs.taskValues.set(key=key, value=str(value))
+        return True
+    except Exception as e:
+        print(f"Warning: Failed to set task value {key}={value}: {e}")
+        return False
+
+
+def get_task_value(task_key, key, default=None):
+    """
+    Get a task value from another task in the same job run.
+    
+    Args:
+        task_key: The task key to get the value from
+        key: The value key
+        default: Default value if not available
+        
+    Returns:
+        Task value or default
+    """
+    dbutils = get_dbutils()
+    if dbutils is None:
+        return default
+    
+    try:
+        return dbutils.jobs.taskValues.get(taskKey=task_key, key=key, default=default)
+    except Exception as e:
+        print(f"Warning: Failed to get task value {task_key}/{key}: {e}")
+        return default
+
+
+def notebook_exit(value=""):
+    """
+    Exit a notebook with a return value.
+    
+    Args:
+        value: Return value (will be converted to string)
+        
+    Returns:
+        True if successful, False if dbutils not available
+    """
+    dbutils = get_dbutils()
+    if dbutils is None:
+        print(f"Warning: dbutils not available, cannot exit with value: {value}")
+        return False
+    
+    try:
+        dbutils.notebook.exit(str(value))
+        return True
+    except Exception as e:
+        print(f"Warning: Failed to exit notebook: {e}")
+        return False
+
+
+def get_dbutils(spark=None):
+    """
+    Safely get dbutils instance.
+    
+    Args:
+        spark: Optional SparkSession. If not provided, gets active session.
+        
+    Returns:
+        dbutils instance or None if not available
+    """
+    try:
+        from pyspark.dbutils import DBUtils
+        if spark is None:
+            from pyspark.sql import SparkSession
+            spark = SparkSession.getActiveSession()
+        return DBUtils(spark)
+    except Exception:
+        return None
+
+
+def get_secret(scope, key, default=None):
+    """
+    Get secret from Databricks secret scope.
+    
+    Args:
+        scope: Secret scope name
+        key: Secret key name
+        default: Default value if secret not available
+        
+    Returns:
+        Secret value or default
+        
+    Raises:
+        RuntimeError: If secret not available and no default provided
+    """
+    dbutils = get_dbutils()
+    if dbutils is None:
+        if default is not None:
+            return default
+        raise RuntimeError(
+            f"dbutils not available and no default provided for secret {scope}/{key}"
+        )
+    
+    try:
+        return dbutils.secrets.get(scope=scope, key=key)
+    except Exception as e:
+        if default is not None:
+            return default
+        raise RuntimeError(f"Failed to get secret {scope}/{key}: {e}")
+
+
+def set_task_value(key, value):
+    """
+    Set a task value for inter-task communication in Databricks Jobs.
+    
+    Args:
+        key: Task value key
+        value: Task value (will be converted to string)
+        
+    Returns:
+        True if successful, False if dbutils not available
+    """
+    dbutils = get_dbutils()
+    if dbutils is None:
+        print(f"Warning: dbutils not available, cannot set task value {key}={value}")
+        return False
+    
+    try:
+        dbutils.jobs.taskValues.set(key=key, value=str(value))
+        return True
+    except Exception as e:
+        print(f"Warning: Failed to set task value {key}={value}: {e}")
+        return False
+
+
+def get_task_value(task_key, key, default=None):
+    """
+    Get a task value from another task in the same job run.
+    
+    Args:
+        task_key: The task key to get the value from
+        key: The value key
+        default: Default value if not available
+        
+    Returns:
+        Task value or default
+    """
+    dbutils = get_dbutils()
+    if dbutils is None:
+        return default
+    
+    try:
+        return dbutils.jobs.taskValues.get(taskKey=task_key, key=key, default=default)
+    except Exception as e:
+        print(f"Warning: Failed to get task value {task_key}/{key}: {e}")
+        return default
+
+
+def notebook_exit(value=""):
+    """
+    Exit a notebook with a return value.
+    
+    Args:
+        value: Return value (will be converted to string)
+        
+    Returns:
+        True if successful, False if dbutils not available
+    """
+    dbutils = get_dbutils()
+    if dbutils is None:
+        print(f"Warning: dbutils not available, cannot exit with value: {value}")
+        return False
+    
+    try:
+        dbutils.notebook.exit(str(value))
+        return True
+    except Exception as e:
+        print(f"Warning: Failed to exit notebook: {e}")
+        return False
+
 
 try:
     from pyspark.sql import SparkSession
@@ -79,24 +320,6 @@ def fetch_data(url, params, **log_info):
             delay = base_delay * (attempt + 1)  # incremental increase
             print(f"Retrying in {delay} seconds...")
             time.sleep(delay)
-
-
-# For incremental updates, we need to keep track of the last timestamp we
-# ingested
-def load_checkpoint(df, **log_info):
-    log = get_job_logger(logger, **log_info, run_id=run_id)
-
-    # if the table exists, read the last timestamp ingested
-    try:
-        last_timestamp = df.select("ingest_timestamp").orderBy(
-            col("ingest_timestamp").desc()).limit(1).collect()[0][0]
-    # else, return a default timestamp
-    except BaseException:
-        last_timestamp = datetime.fromisoformat("2011-01-01T00:00:00Z")
-
-    log(logging.INFO,
-        f"{log_info['layer']} last timestamp ingested: {last_timestamp}")
-    return last_timestamp
 
 
 # This function creates an empty delta table with fixed schema if it

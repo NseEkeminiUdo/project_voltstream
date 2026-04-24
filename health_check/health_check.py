@@ -74,11 +74,9 @@ class GoldTableHealthCheck:
             "dataset": f"{catalog}.{schema}"
         }
         try:
-            from pyspark.dbutils import DBUtils
-            context = DBUtils(
-                spark).notebook.entry_point.getDbutils().notebook().getContext()
-            run_id = context.tags().get("runId").get()
-        except BaseException:
+            run_id = spark.conf.get("spark.databricks.clusterUsageTags.runId",
+                                   spark.conf.get("pipeline_run_id", "manual_run"))
+        except Exception:
             run_id = "manual_run"
 
         self.log = get_job_logger(self.logger, **self.log_info, run_id=run_id)

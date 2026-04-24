@@ -5,7 +5,7 @@ from pyspark.sql.functions import col, lit, get_json_object
 from pyspark.sql.types import StructType, StructField, StringType, TimestampType
 import json
 from schema.bronze import weather_api_schema
-from utils.shared import fetch_data, load_checkpoint, write_to_table
+from utils.shared import fetch_data, write_to_table
 from logger.custom_logging import set_up_logger, get_job_logger
 import time
 import logging

@@ -46,7 +46,7 @@ coverage.xml
 
 # Jupyter Notebooks
 .ipynb_checkpoints
-*.ipynb
+
 
 # Databricks
 .databrickscfg
@@ -64,7 +64,6 @@ logs/
 
 # Data files (don't commit large datasets)
 *.csv
-*.parquet
 *.json
 data/
 *.db
@@ -82,3 +81,7 @@ data/
 secrets/
 credentials.json
 service-account.json
+
+# Validation script (generated)
+validate.py
+
