@@ -16,6 +16,7 @@ Can be scheduled as a Databricks job to run periodically.
 """
 
 from logger.custom_logging import set_up_logger, get_job_logger
+from utils.shared import notebook_exit
 import sys
 import os
 from datetime import datetime, timedelta
@@ -25,7 +26,7 @@ import logging
 
 # Add project root to path
 sys.path.insert(
-    0, '/Workspace/Users/nseekeminiudo@gmail.com/project_volltstream')
+    0, '/Workspace/Users/nseekeminiudo@gmail.com/project_voltstream')
 
 
 class HealthCheckStatus:
@@ -375,10 +376,10 @@ def main():
         # Exit with appropriate status code
         if is_healthy:
             print("\n✓ All health checks passed!")
-            dbutils.notebook.exit("SUCCESS")
+            notebook_exit("SUCCESS")
         else:
             print("\n✗ Some health checks failed. See logs for details.")
-            dbutils.notebook.exit("FAILED")
+            notebook_exit("FAILED")
     except Exception as e:
         print(f"\n✗ Health check script failed with error: {str(e)}")
         import traceback
