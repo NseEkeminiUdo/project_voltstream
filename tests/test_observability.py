@@ -109,13 +109,13 @@ def test_get_last_timestamp_multiple_records(spark, setup_control_table):
     timestamp3 = datetime(2024, 1, 15, 12, 0, 0)
 
     insert_control_record(
-        spark, setup_control_table, "voltstream", "bronze", timestamp1
+        spark, setup_control_table, "voltstream", "bronze", timestamp1, end_time=timestamp1
     )
     insert_control_record(
-        spark, setup_control_table, "voltstream", "bronze", timestamp2
+        spark, setup_control_table, "voltstream", "bronze", timestamp2, end_time=timestamp2
     )
     insert_control_record(
-        spark, setup_control_table, "voltstream", "bronze", timestamp3
+        spark, setup_control_table, "voltstream", "bronze", timestamp3, end_time=timestamp3
     )
 
     result = get_last_processed_timestamp(

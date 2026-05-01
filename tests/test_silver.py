@@ -129,7 +129,7 @@ def test_validate_and_quarantine_rows_all_valid(mock_write, spark):
     df = spark.createDataFrame([(1, 40.7, -74.0), (2, 40.8, -73.9)], schema)
 
     log_info = {"layer": "silver", "job": "test", "dataset": "test_dataset"}
-    result_df = validate_and_quarantine_rows(
+    result_df, invalid_df = validate_and_quarantine_rows(
         df, ["station_id", "latitude", "longitude"], **log_info
     )
 
@@ -152,7 +152,7 @@ def test_validate_and_quarantine_rows_with_nulls(mock_write, spark):
     )
 
     log_info = {"layer": "silver", "job": "test", "dataset": "test_dataset"}
-    result_df = validate_and_quarantine_rows(
+    result_df, invalid_df = validate_and_quarantine_rows(
         df, ["station_id", "latitude", "longitude"], **log_info
     )
 
@@ -431,8 +431,12 @@ def test_add_weather_zone_coordinates(spark):
 # Tests for standardize_towns
 @pytest.mark.spark
 def test_standardize_towns(spark, ensure_geopandas):
+    import geopandas as gpd
+    from shapely.geometry import Polygon
+   
     """Test standardizing town names using geospatial join"""
     # Create test input dataframe with station data
+    # Use a point clearly within Manhattan polygon only
     schema = StructType(
         [
             StructField("station_id", IntegerType(), True),
@@ -441,64 +445,60 @@ def test_standardize_towns(spark, ensure_geopandas):
             StructField("town", StringType(), True),
         ]
     )
-    df = spark.createDataFrame([(1, 40.7128, -74.0060, "Old Town Name")], schema)
+    df = spark.createDataFrame([(1, 40.77, -74.00, "Old Town Name")], schema)
 
-    with patch("geopandas.read_parquet") as mock_read_parquet, patch(
-        "geopandas.sjoin_nearest"
-    ) as mock_sjoin_nearest:
+    # Create non-overlapping polygons for NYC boroughs
+    nyc_boroughs = gpd.GeoDataFrame(
+        {
+            "name": [
+                "Manhattan",
+                "Brooklyn",
+                "Queens",
+                "Bronx",
+                "Staten Island",
+            ],
+            "geometry": [
+                Polygon([(-74.05, 40.70), (-73.95, 40.70), (-73.95, 40.85), (-74.05, 40.85)]),  # Manhattan
+                Polygon([(-74.05, 40.55), (-73.95, 40.55), (-73.95, 40.70), (-74.05, 40.70)]),  # Brooklyn
+                Polygon([(-73.70, 40.70), (-73.50, 40.70), (-73.50, 40.85), (-73.70, 40.85)]),  # Queens
+                Polygon([(-73.95, 40.85), (-73.70, 40.85), (-73.70, 41.00), (-73.95, 41.00)]),  # Bronx
+                Polygon([(-74.25, 40.50), (-74.05, 40.50), (-74.05, 40.70), (-74.25, 40.70)]),  # Staten Island
+            ],
+        },
+        crs="EPSG:4326"
+    )
 
-        # Mock the clipped parquet file (geographic boundary data)
-        mock_clipped = MagicMock()
-        mock_read_parquet.return_value = mock_clipped
+    return_value = nyc_boroughs.to_parquet("/Volumes/bronze_dev/superstor_schema/raw_superstore/tmp.parquet")
 
-        # Mock the result of spatial join
-        # The join should add a "name" column and other fields
-        import pandas as pd
 
-        mock_joined_data = pd.DataFrame(
-            {
-                "station_id": [1],
-                "latitude": [40.7128],
-                "longitude": [-74.0060],
-                "name": ["Standardized Town"],  # This will be renamed to "town"
-                "geometry": [None],  # Will be dropped
-                "distance": [0.1],  # Will be dropped
-                "town": ["Old Town Name"],  # Will be dropped (original town)
-                "index_right": [0],  # Will be dropped
-            }
-        )
-        mock_sjoin_nearest.return_value = mock_joined_data
+    # Call the function
+    result_df = standardize_towns(spark, df, file="tmp.parquet")
 
-        # Call the function
-        result_df = standardize_towns(spark, df)
+    # Verify output dataframe structure
+    assert result_df.count() == 1
+    assert "town" in result_df.columns
+    assert "station_id" in result_df.columns
+    assert "latitude" in result_df.columns
+    assert "longitude" in result_df.columns
 
-        # Verify the function was called with correct arguments
-        mock_read_parquet.assert_called_once_with(
-            "/Volumes/bronze_dev/superstor_schema/raw_superstore/clipped.parquet"
-        )
-        mock_sjoin_nearest.assert_called_once()
+    # Verify dropped columns are not present
+    assert "geometry" not in result_df.columns
+    assert "distance" not in result_df.columns
+    assert "index_right" not in result_df.columns
 
-        # Verify output dataframe structure
-        assert result_df.count() == 1
-        assert "town" in result_df.columns
-        assert "station_id" in result_df.columns
-        assert "latitude" in result_df.columns
-        assert "longitude" in result_df.columns
-
-        # Verify dropped columns are not present
-        assert "geometry" not in result_df.columns
-        assert "distance" not in result_df.columns
-        assert "index_right" not in result_df.columns
-
-        # Verify town was renamed from "name"
-        row = result_df.collect()[0]
-        assert row["town"] == "Standardized Town"
+    # Verify town was renamed from "name"
+    row = result_df.collect()[0]
+    assert row["town"] == "Manhattan"
 
 
 @pytest.mark.spark
 def test_standardize_towns_multiple_stations(spark, ensure_geopandas):
+    import geopandas as gpd
+    from shapely.geometry import Polygon
+
     """Test standardizing town names for multiple stations"""
     # Create test input dataframe with multiple stations
+    # Use coordinates clearly within different boroughs (no overlaps)
     schema = StructType(
         [
             StructField("station_id", IntegerType(), True),
@@ -507,46 +507,46 @@ def test_standardize_towns_multiple_stations(spark, ensure_geopandas):
             StructField("town", StringType(), True),
         ]
     )
+    # Point 1: clearly in Manhattan (lat: 40.77, lon: -74.00)
+    # Point 2: clearly in Brooklyn (lat: 40.60, lon: -74.00)
     df = spark.createDataFrame(
-        [(1, 40.7128, -74.0060, "Old Town 1"), (2, 40.7580, -73.9855, "Old Town 2")],
+        [(1, 40.77, -74.00, "Old Town 1"), (2, 40.60, -74.00, "Old Town 2")],
         schema,
     )
 
-    with patch("geopandas.read_parquet") as mock_read_parquet, patch(
-        "geopandas.sjoin_nearest"
-    ) as mock_sjoin_nearest:
+    # Create non-overlapping polygons for NYC boroughs
+    nyc_boroughs = gpd.GeoDataFrame(
+        {
+            "name": [
+                "Manhattan",
+                "Brooklyn",
+                "Queens",
+                "Bronx",
+                "Staten Island",
+            ],
+            "geometry": [
+                Polygon([(-74.05, 40.70), (-73.95, 40.70), (-73.95, 40.85), (-74.05, 40.85)]),  # Manhattan
+                Polygon([(-74.05, 40.55), (-73.95, 40.55), (-73.95, 40.70), (-74.05, 40.70)]),  # Brooklyn
+                Polygon([(-73.70, 40.70), (-73.50, 40.70), (-73.50, 40.85), (-73.70, 40.85)]),  # Queens
+                Polygon([(-73.95, 40.85), (-73.70, 40.85), (-73.70, 41.00), (-73.95, 41.00)]),  # Bronx
+                Polygon([(-74.25, 40.50), (-74.05, 40.50), (-74.05, 40.70), (-74.25, 40.70)]),  # Staten Island
+            ],
+        },
+        crs="EPSG:4326"
+    )
 
-        # Mock the clipped parquet file
-        mock_clipped = MagicMock()
-        mock_read_parquet.return_value = mock_clipped
+    nyc_boroughs.to_parquet("/Volumes/bronze_dev/superstor_schema/raw_superstore/tmp_multi.parquet")
 
-        # Mock the result of spatial join with multiple stations
-        import pandas as pd
+    # Call the function
+    result_df = standardize_towns(spark, df, file="/Volumes/bronze_dev/superstor_schema/raw_superstore/tmp_multi.parquet")
 
-        mock_joined_data = pd.DataFrame(
-            {
-                "station_id": [1, 2],
-                "latitude": [40.7128, 40.7580],
-                "longitude": [-74.0060, -73.9855],
-                "name": ["New York City", "Manhattan"],
-                "geometry": [None, None],
-                "distance": [0.1, 0.2],
-                "town": ["Old Town 1", "Old Town 2"],
-                "index_right": [0, 1],
-            }
-        )
-        mock_sjoin_nearest.return_value = mock_joined_data
+    # Verify output dataframe has correct count
+    assert result_df.count() == 2
 
-        # Call the function
-        result_df = standardize_towns(spark, df)
-
-        # Verify output dataframe has correct count
-        assert result_df.count() == 2
-
-        # Verify town names are standardized
-        towns = [row["town"] for row in result_df.collect()]
-        assert "New York City" in towns
-        assert "Manhattan" in towns
+    # Verify town names are standardized
+    towns = [row["town"] for row in result_df.collect()]
+    assert "Manhattan" in towns
+    assert "Brooklyn" in towns
 
 
 # Tests for explode_connections
@@ -652,6 +652,7 @@ def test_select_conn_columns(spark):
 # Tests for transform_weather
 @pytest.mark.spark
 def test_transform_weather(spark):
+
     """Test transforming weather data"""
     schema = StructType(
         [
@@ -668,6 +669,7 @@ def test_transform_weather(spark):
             StructField("wind_speed", DoubleType(), True),
             StructField("clouds", IntegerType(), True),
             StructField("dt", IntegerType(), True),
+            StructField("ingest_timestamp", TimestampType(), True)
         ]
     )
     df = spark.createDataFrame(
@@ -686,6 +688,7 @@ def test_transform_weather(spark):
                 5.5,
                 20,
                 1704067200,
+                datetime.now(),
             )
         ],
         schema,

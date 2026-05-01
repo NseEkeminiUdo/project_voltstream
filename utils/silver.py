@@ -224,13 +224,11 @@ def insert_new_rows(delta_dim, inserts_df, id, **log_info):
     log(logging.INFO, f"{inserts_df.count()} records inserted into {delta_dim}")
 
 
-def standardize_towns(spark, df):
+def standardize_towns(spark, df, file="/Workspace/Users/nseekeminiudo@gmail.com/project_voltstream/extras/clipped.parquet"):
     import geopandas as gpd
     import pandas as pd
 
-    clipped = gpd.read_parquet(
-        "/Workspace/Users/nseekeminiudo@gmail.com/project_voltstream/extras/clipped.parquet"
-    )
+    clipped = gpd.read_parquet(file)
     clipped = gpd.GeoDataFrame(clipped, geometry="geometry", crs="EPSG:2263")
 
     # Load Spark EV stations
@@ -241,9 +239,6 @@ def standardize_towns(spark, df):
         pdf, geometry=gpd.points_from_xy(pdf.longitude, pdf.latitude), crs="EPSG:2263"
     )
 
-    print(clipped.crs)
-    print(gdf.crs)
-
     # Spatial nearest join
     joined = gpd.sjoin_nearest(gdf, clipped, how="left", distance_col="distance")
 
@@ -252,6 +247,7 @@ def standardize_towns(spark, df):
         joined.drop(columns=["geometry", "distance", "town", "index_right"])
     )
     df = spark_df_final.withColumnRenamed("name", "town")
+    print(df.columns)
     return df
 
 
@@ -364,5 +360,4 @@ def transform_weather(df):
         .withColumn("ingest_timestamp", lit(datetime.now()))
         .withColumn("weather_zone_id", xxhash64(col("lat"), col("lon")))
     )
-
     return df

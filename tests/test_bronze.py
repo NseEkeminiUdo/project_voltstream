@@ -135,7 +135,7 @@ def test_get_all_stations_data_success(mock_fetch):
     api_key = "test_key"
     log_info = {"layer": "bronze", "job": "test", "dataset": "test_dataset"}
 
-    result = get_all_stations_data(grid, last_timestamp, api_key, log_info)
+    result = get_all_stations_data(grid, last_timestamp, api_key, **log_info)
 
     assert result is not None
     assert len(result) == 4
@@ -151,7 +151,7 @@ def test_get_all_stations_data_no_updates(mock_fetch):
     api_key = "test_key"
     log_info = {"layer": "bronze", "job": "test", "dataset": "test_dataset"}
 
-    result = get_all_stations_data(grid, last_timestamp, api_key, log_info)
+    result = get_all_stations_data(grid, last_timestamp, api_key, **log_info)
 
     assert result is None
 
@@ -164,7 +164,7 @@ def test_get_all_stations_data_empty_grid(mock_fetch):
     api_key = "test_key"
     log_info = {"layer": "bronze", "job": "test", "dataset": "test_dataset"}
 
-    result = get_all_stations_data(grid, last_timestamp, api_key, log_info)
+    result = get_all_stations_data(grid, last_timestamp, api_key, **log_info)
 
     assert result is None
     mock_fetch.assert_not_called()
@@ -181,7 +181,7 @@ def test_get_all_stations_data_api_exception(mock_fetch):
     log_info = {"layer": "bronze", "job": "test", "dataset": "test_dataset"}
 
     with pytest.raises(Exception, match="API Error"):
-        get_all_stations_data(grid, last_timestamp, api_key, log_info)
+        get_all_stations_data(grid, last_timestamp, api_key, **log_info)
 
 
 # Tests for convert_to_json_string

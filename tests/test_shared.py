@@ -63,7 +63,7 @@ def test_fetch_data_success(mock_get):
     mock_get.return_value = mock_response
 
     log_info = {"layer": "bronze", "job": "test", "dataset": "test_dataset"}
-    result = fetch_data("http://test.com", {"param": "value"}, log_info)
+    result = fetch_data("http://test.com", {"param": "value"}, **log_info)
 
     assert result == {"data": "test"}
     mock_get.assert_called_once()
@@ -81,7 +81,7 @@ def test_fetch_data_retry_on_failure(mock_sleep, mock_get):
     log_info = {"layer": "bronze", "job": "test", "dataset": "test_dataset"}
 
     with pytest.raises(Exception):
-        fetch_data("http://test.com", {"param": "value"}, log_info)
+        fetch_data("http://test.com", {"param": "value"}, **log_info)
 
     # Should retry 5 times
     assert mock_get.call_count == 5
