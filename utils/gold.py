@@ -9,13 +9,10 @@ from pyspark.sql.functions import (
     least,
     timestamp_diff,
     lag,
-    sum_distinct,
     row_number,
 )
 from pyspark.sql.window import Window
 from datetime import datetime
-from logger.custom_logging import set_up_logger, get_job_logger
-import logging
 
 """
 This file contains functions to be used in the gold layer of the pipeline
@@ -34,8 +31,6 @@ try:
         run_id = "unknown"
 except Exception:
     run_id = "unknown"
-
-logger = set_up_logger()
 
 
 # This function joins the three tables

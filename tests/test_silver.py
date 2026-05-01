@@ -433,7 +433,7 @@ def test_add_weather_zone_coordinates(spark):
 def test_standardize_towns(spark, ensure_geopandas):
     import geopandas as gpd
     from shapely.geometry import Polygon
-   
+
     """Test standardizing town names using geospatial join"""
     # Create test input dataframe with station data
     # Use a point clearly within Manhattan polygon only
@@ -458,18 +458,29 @@ def test_standardize_towns(spark, ensure_geopandas):
                 "Staten Island",
             ],
             "geometry": [
-                Polygon([(-74.05, 40.70), (-73.95, 40.70), (-73.95, 40.85), (-74.05, 40.85)]),  # Manhattan
-                Polygon([(-74.05, 40.55), (-73.95, 40.55), (-73.95, 40.70), (-74.05, 40.70)]),  # Brooklyn
-                Polygon([(-73.70, 40.70), (-73.50, 40.70), (-73.50, 40.85), (-73.70, 40.85)]),  # Queens
-                Polygon([(-73.95, 40.85), (-73.70, 40.85), (-73.70, 41.00), (-73.95, 41.00)]),  # Bronx
-                Polygon([(-74.25, 40.50), (-74.05, 40.50), (-74.05, 40.70), (-74.25, 40.70)]),  # Staten Island
+                Polygon(
+                    [(-74.05, 40.70), (-73.95, 40.70), (-73.95, 40.85), (-74.05, 40.85)]
+                ),  # Manhattan
+                Polygon(
+                    [(-74.05, 40.55), (-73.95, 40.55), (-73.95, 40.70), (-74.05, 40.70)]
+                ),  # Brooklyn
+                Polygon(
+                    [(-73.70, 40.70), (-73.50, 40.70), (-73.50, 40.85), (-73.70, 40.85)]
+                ),  # Queens
+                Polygon(
+                    [(-73.95, 40.85), (-73.70, 40.85), (-73.70, 41.00), (-73.95, 41.00)]
+                ),  # Bronx
+                Polygon(
+                    [(-74.25, 40.50), (-74.05, 40.50), (-74.05, 40.70), (-74.25, 40.70)]
+                ),  # Staten Island
             ],
         },
-        crs="EPSG:4326"
+        crs="EPSG:4326",
     )
 
-    return_value = nyc_boroughs.to_parquet("/Volumes/bronze_dev/superstor_schema/raw_superstore/tmp.parquet")
-
+    return_value = nyc_boroughs.to_parquet(
+        "/Volumes/bronze_dev/superstor_schema/raw_superstore/tmp.parquet"
+    )
 
     # Call the function
     result_df = standardize_towns(spark, df, file="tmp.parquet")
@@ -525,20 +536,36 @@ def test_standardize_towns_multiple_stations(spark, ensure_geopandas):
                 "Staten Island",
             ],
             "geometry": [
-                Polygon([(-74.05, 40.70), (-73.95, 40.70), (-73.95, 40.85), (-74.05, 40.85)]),  # Manhattan
-                Polygon([(-74.05, 40.55), (-73.95, 40.55), (-73.95, 40.70), (-74.05, 40.70)]),  # Brooklyn
-                Polygon([(-73.70, 40.70), (-73.50, 40.70), (-73.50, 40.85), (-73.70, 40.85)]),  # Queens
-                Polygon([(-73.95, 40.85), (-73.70, 40.85), (-73.70, 41.00), (-73.95, 41.00)]),  # Bronx
-                Polygon([(-74.25, 40.50), (-74.05, 40.50), (-74.05, 40.70), (-74.25, 40.70)]),  # Staten Island
+                Polygon(
+                    [(-74.05, 40.70), (-73.95, 40.70), (-73.95, 40.85), (-74.05, 40.85)]
+                ),  # Manhattan
+                Polygon(
+                    [(-74.05, 40.55), (-73.95, 40.55), (-73.95, 40.70), (-74.05, 40.70)]
+                ),  # Brooklyn
+                Polygon(
+                    [(-73.70, 40.70), (-73.50, 40.70), (-73.50, 40.85), (-73.70, 40.85)]
+                ),  # Queens
+                Polygon(
+                    [(-73.95, 40.85), (-73.70, 40.85), (-73.70, 41.00), (-73.95, 41.00)]
+                ),  # Bronx
+                Polygon(
+                    [(-74.25, 40.50), (-74.05, 40.50), (-74.05, 40.70), (-74.25, 40.70)]
+                ),  # Staten Island
             ],
         },
-        crs="EPSG:4326"
+        crs="EPSG:4326",
     )
 
-    nyc_boroughs.to_parquet("/Volumes/bronze_dev/superstor_schema/raw_superstore/tmp_multi.parquet")
+    nyc_boroughs.to_parquet(
+        "/Volumes/bronze_dev/superstor_schema/raw_superstore/tmp_multi.parquet"
+    )
 
     # Call the function
-    result_df = standardize_towns(spark, df, file="/Volumes/bronze_dev/superstor_schema/raw_superstore/tmp_multi.parquet")
+    result_df = standardize_towns(
+        spark,
+        df,
+        file="/Volumes/bronze_dev/superstor_schema/raw_superstore/tmp_multi.parquet",
+    )
 
     # Verify output dataframe has correct count
     assert result_df.count() == 2
@@ -652,7 +679,6 @@ def test_select_conn_columns(spark):
 # Tests for transform_weather
 @pytest.mark.spark
 def test_transform_weather(spark):
-
     """Test transforming weather data"""
     schema = StructType(
         [
@@ -669,7 +695,7 @@ def test_transform_weather(spark):
             StructField("wind_speed", DoubleType(), True),
             StructField("clouds", IntegerType(), True),
             StructField("dt", IntegerType(), True),
-            StructField("ingest_timestamp", TimestampType(), True)
+            StructField("ingest_timestamp", TimestampType(), True),
         ]
     )
     df = spark.createDataFrame(

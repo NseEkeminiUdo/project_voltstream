@@ -28,7 +28,6 @@ Examples:
 """
 
 import sys
-import os
 import subprocess
 import argparse
 from datetime import datetime

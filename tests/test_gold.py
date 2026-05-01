@@ -7,7 +7,6 @@ from pyspark.sql.types import (
     IntegerType,
     DoubleType,
     TimestampType,
-    BooleanType,
 )
 from pyspark.sql.functions import col
 
@@ -30,16 +29,22 @@ def test_join_tables(spark):
             StructField("status_id", IntegerType(), True),
             StructField("weather_zone_lat", DoubleType(), True),
             StructField("weather_zone_lon", DoubleType(), True),
-            StructField("date_last_status_update", TimestampType(), True)
+            StructField("date_last_status_update", TimestampType(), True),
         ]
     )
     df_stations = spark.createDataFrame(
         [
-            (1, 50, 40.7, -74.0, datetime(2025, 1, 1)),  
+            (1, 50, 40.7, -74.0, datetime(2025, 1, 1)),
             (2, 30, 40.8, -73.9, datetime(2025, 1, 2)),  # Temporarily unavailable
-            (3, 20, 40.9, -73.8, datetime(2025, 1, 3))  # Not operational (should be filtered)
+            (
+                3,
+                20,
+                40.9,
+                -73.8,
+                datetime(2025, 1, 3),
+            ),  # Not operational (should be filtered)
         ],
-        stations_schema
+        stations_schema,
     )
 
     # Create connections dataframe
@@ -47,7 +52,7 @@ def test_join_tables(spark):
         [
             StructField("station_id", IntegerType(), True),
             StructField("power_kw", DoubleType(), True),
-            StructField("quantity", IntegerType(), True)
+            StructField("quantity", IntegerType(), True),
         ]
     )
     df_connections = spark.createDataFrame(
@@ -80,8 +85,17 @@ def test_join_tables_operational_flag(spark):
     """Test is_operational flag is correctly set"""
     # Create minimal test data
     stations = spark.createDataFrame(
-        [(1, 50, 40.7, -74.0, datetime(2025, 1, 1)), (2, 30, 40.7, -74.0, datetime(2025, 1, 2))],
-        ["station_id", "status_id", "weather_zone_lat", "weather_zone_lon", "date_last_status_update"],
+        [
+            (1, 50, 40.7, -74.0, datetime(2025, 1, 1)),
+            (2, 30, 40.7, -74.0, datetime(2025, 1, 2)),
+        ],
+        [
+            "station_id",
+            "status_id",
+            "weather_zone_lat",
+            "weather_zone_lon",
+            "date_last_status_update",
+        ],
     )
     connections = spark.createDataFrame(
         [(1, 50.0, 1), (2, 100.0, 2)], ["station_id", "power_kw", "quantity"]
@@ -121,7 +135,7 @@ def test_get_station_status_facts(spark):
             StructField("date_last_status_update", TimestampType(), True),
             StructField("date_created", TimestampType(), True),
             StructField("valid_from", TimestampType(), True),
-            StructField("valid_to", TimestampType(), True)
+            StructField("valid_to", TimestampType(), True),
         ]
     )
     df_stations = spark.createDataFrame(
@@ -134,7 +148,7 @@ def test_get_station_status_facts(spark):
                 datetime(2025, 1, 1),
                 datetime(2024, 1, 1),
                 datetime(2025, 1, 1),
-                datetime(2026, 1, 1)
+                datetime(2026, 1, 1),
             )
         ],
         stations_schema,
@@ -208,7 +222,9 @@ def test_add_station_facts_metadata(spark):
         ]
     )
     df = spark.createDataFrame(
-        [(1, 100.0, 60.0, 1000.0)], schema  # 60 min offline out of 1000 min total
+        # 60 min offline out of 1000 min total
+        [(1, 100.0, 60.0, 1000.0)],
+        schema,
     )
 
     result_df = add_station_facts_metadata(df)
@@ -246,7 +262,7 @@ def test_get_station_dim(spark):
             StructField("state_or_province", StringType(), True),
             StructField("latitude", DoubleType(), True),
             StructField("longitude", DoubleType(), True),
-            StructField("date_last_status_update", TimestampType(), True)
+            StructField("date_last_status_update", TimestampType(), True),
         ]
     )
     df_stations = spark.createDataFrame(
@@ -262,7 +278,7 @@ def test_get_station_dim(spark):
                 "NY",
                 40.7,
                 -74.0,
-                datetime(2025, 1, 1)
+                datetime(2025, 1, 1),
             ),
             (
                 2,
@@ -275,7 +291,7 @@ def test_get_station_dim(spark):
                 "NJ",
                 40.8,
                 -73.9,
-                datetime(2025, 1, 2)
+                datetime(2025, 1, 2),
             ),
         ],
         stations_schema,
@@ -285,11 +301,15 @@ def test_get_station_dim(spark):
         [
             StructField("station_id", IntegerType(), True),
             StructField("power_kw", DoubleType(), True),
-            StructField("quantity", IntegerType(), True)
+            StructField("quantity", IntegerType(), True),
         ]
     )
     df_connections = spark.createDataFrame(
-        [(1, 50.0, 1), (1, 100.0, 2), (2, 75.0, 3)],  # Same station, different connector
+        [
+            (1, 50.0, 1),
+            (1, 100.0, 2),
+            (2, 75.0, 3),
+        ],  # Same station, different connector
         connections_schema,
     )
 
@@ -343,7 +363,7 @@ def test_get_weather_dim(spark):
             StructField("status_id", IntegerType(), True),
             StructField("weather_zone_lat", DoubleType(), True),
             StructField("weather_zone_lon", DoubleType(), True),
-            StructField("date_last_status_update", TimestampType(), True)
+            StructField("date_last_status_update", TimestampType(), True),
         ]
     )
     df_stations = spark.createDataFrame(
@@ -351,17 +371,19 @@ def test_get_weather_dim(spark):
             (1, 50, 40.7, -74.0, datetime(2025, 1, 1)),
             (2, 50, 40.8, -73.9, datetime(2025, 1, 2)),
         ],
-        stations_schema
+        stations_schema,
     )
 
     connections_schema = StructType(
         [
             StructField("station_id", IntegerType(), True),
             StructField("power_kw", DoubleType(), True),
-            StructField("quantity", IntegerType(), True)
+            StructField("quantity", IntegerType(), True),
         ]
     )
-    df_connections = spark.createDataFrame([(1, 50.0, 1), (2, 100.0, 2)], connections_schema)
+    df_connections = spark.createDataFrame(
+        [(1, 50.0, 1), (2, 100.0, 2)], connections_schema
+    )
 
     weather_schema = StructType(
         [
@@ -466,7 +488,7 @@ def test_risk_score_calculation(spark):
             StructField("date_last_status_update", TimestampType(), True),
             StructField("date_created", TimestampType(), True),
             StructField("valid_from", TimestampType(), True),
-            StructField("valid_to", TimestampType(), True)
+            StructField("valid_to", TimestampType(), True),
         ]
     )
     df_stations = spark.createDataFrame(
@@ -479,7 +501,7 @@ def test_risk_score_calculation(spark):
                 datetime(2025, 1, 1),
                 datetime(2025, 1, 1),
                 datetime(2024, 1, 1),
-                datetime(2026, 1, 1)
+                datetime(2026, 1, 1),
             )
         ],
         stations_schema,
@@ -490,7 +512,8 @@ def test_risk_score_calculation(spark):
             StructField("station_id", IntegerType(), True),
             StructField("power_kw", DoubleType(), True),
             StructField("valid_to", TimestampType(), True),
-            StructField("level_id", IntegerType(), True),  # Level 3 adds 25 points
+            # Level 3 adds 25 points
+            StructField("level_id", IntegerType(), True),
             StructField("quantity", IntegerType(), True),
         ]
     )
@@ -507,7 +530,8 @@ def test_risk_score_calculation(spark):
             StructField("weather_zone_id", IntegerType(), True),
             StructField("dt_utc", TimestampType(), True),
             StructField("description", StringType(), True),  # Storm adds 40 points
-            StructField("temp", DoubleType(), True),  # Extreme temp adds 25 points
+            # Extreme temp adds 25 points
+            StructField("temp", DoubleType(), True),
         ]
     )
     df_weather = spark.createDataFrame(

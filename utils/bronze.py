@@ -6,7 +6,6 @@ import json
 from schema.bronze import weather_api_schema
 from utils.shared import fetch_data, write_to_table
 from logger.custom_logging import set_up_logger, get_job_logger
-import time
 import logging
 
 """
@@ -129,7 +128,6 @@ def get_weather_zone(df, **log_info):
 # This function fetches the weather data from the open weather map API for
 # each weather zone
 def get_weather_zone_data(weather_zone, api_key, **log_info):
-    log = get_job_logger(logger, **log_info, run_id=run_id)
     api_url = "https://api.openweathermap.org/data/2.5/weather?"
     all_zones = []
     for lat, lon in weather_zone:

@@ -1,5 +1,3 @@
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import current_timestamp
 from pyspark.sql.types import (
     StructType,
     StructField,

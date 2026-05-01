@@ -211,7 +211,8 @@ def test_standardize_towns_integration(spark):
                 "name": ["Manhattan", "Newark"],  # Standardized town names
                 "geometry": [None, None],  # Will be dropped
                 "distance": [0.1, 0.2],  # Will be dropped
-                "town": ["NYC", "Nwk"],  # Original town names (will be dropped)
+                # Original town names (will be dropped)
+                "town": ["NYC", "Nwk"],
                 "index_right": [0, 1],  # Will be dropped
             }
         )

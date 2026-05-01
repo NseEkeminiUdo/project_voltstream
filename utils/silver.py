@@ -216,7 +216,7 @@ def insert_new_rows(delta_dim, inserts_df, id, **log_info):
         delta_dim.alias("current")
         .merge(
             inserts_df.alias("updates"),
-            f"1 == 0",
+            "1 == 0",
         )
         .whenNotMatchedInsertAll()
         .execute()
@@ -224,7 +224,11 @@ def insert_new_rows(delta_dim, inserts_df, id, **log_info):
     log(logging.INFO, f"{inserts_df.count()} records inserted into {delta_dim}")
 
 
-def standardize_towns(spark, df, file="/Workspace/Users/nseekeminiudo@gmail.com/project_voltstream/extras/clipped.parquet"):
+def standardize_towns(
+    spark,
+    df,
+    file="/Workspace/Users/nseekeminiudo@gmail.com/project_voltstream/extras/clipped.parquet",
+):
     import geopandas as gpd
     import pandas as pd
 

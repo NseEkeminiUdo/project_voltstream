@@ -2,14 +2,7 @@ import pytest
 from unittest.mock import patch
 from datetime import datetime, timedelta
 from pyspark.sql import SparkSession
-from pyspark.sql.types import (
-    StructType,
-    StructField,
-    StringType,
-    IntegerType,
-    DoubleType,
-    TimestampType,
-)
+from pyspark.sql.types import StructType, StructField, IntegerType, DoubleType
 import json
 import os
 

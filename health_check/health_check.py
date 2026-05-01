@@ -18,17 +18,9 @@ Can be scheduled as a Databricks job to run periodically.
 from logger.custom_logging import set_up_logger, get_job_logger
 from utils.shared import notebook_exit
 import sys
-import os
-from datetime import datetime, timedelta
+from datetime import datetime
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import (
-    col,
-    max as spark_max,
-    min as spark_min,
-    count,
-    countDistinct,
-    sum as spark_sum,
-)
+from pyspark.sql.functions import col, max as spark_max
 import logging
 
 # Add project root to path
